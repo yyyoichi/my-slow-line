@@ -1,0 +1,72 @@
+version: '3'
+volumes:
+  db_data:
+  node_modules:
+
+
+services:
+  app:
+    build:
+      context: app/
+      dockerfile: .devcontainer/Dockerfile.dev
+      target: local
+    container_name: "app"
+    ports:
+      - "127.0.0.1:3000:3000"
+    tty: true
+    volumes:
+      - .:/workspace:cached
+      - node_modules:/workspace/app/node_modules
+    # command:
+    #   - 'sh'
+    #   - '-c'
+    #   - >-
+    #     npm run dev
+  api:
+    build:
+      context: api/
+      dockerfile: .devcontainer/Dockerfile.dev
+    container_name: "api"
+    ports:
+      - "127.0.0.1:8080:8080"
+    tty: true
+    volumes:
+      - .:/workspace:cached
+  #   environment:
+  #     - DB_HOST=db
+  #     - DB_USER=appuser
+  #     - DB_PASSWOR=p@55w0rd%!
+  #     - DB_DATABASE=message
+  # db:
+  #   image: mariadb:10.4
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=root
+  #     - MYSQL_DATABASE=message
+  #     - MYSQL_USER=appuser
+  #     - MYSQL_PASSWORD=p@55w0rd%!
+  #   container_name: mariadb
+  #   restart: always
+  #   volumes:
+  #     - ./db/init.d:/docker-entrypoint-initdb.d
+  #     - ./db-data:/var/lib/mysql
+
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: adminer
+  #   environment:
+  #     ADMINER_DEFAULT_SERVER: mariadb
+  #   restart: always
+  #   ports:
+  #     - "7777:8080"
+
+
+
+
+  # nginx:
+  #   image: nginx:1.21.3-alpine
+  #   volumes:
+  #     - ../nginx:/etc/nginx
+  #   ports:
+  #     - 80:80
+  #   depends_on:
+  #     - app

@@ -1,0 +1,14 @@
+FROM node:18-alpine as base
+
+RUN npm i -g npm
+
+RUN  apk update
+
+WORKDIR /workspace/app
+COPY ./ ./
+RUN npm i
+
+FROM base as local
+
+RUN apk add git
+

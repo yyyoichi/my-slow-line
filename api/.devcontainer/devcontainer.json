@@ -1,0 +1,12 @@
+{
+  "name": "HIMA_KIWA_BE",
+    "dockerComposeFile": "../../docker-compose.dev.yml",
+    "service": "api",
+    "workspaceFolder": "/workspace/api",
+    "customizations": {
+      "vscode": {
+        "extensions": ["golang.Go"]
+      }
+    },
+    "shutdownAction": "none"
+  }
