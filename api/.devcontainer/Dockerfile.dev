@@ -1,23 +1,23 @@
-FROM golang:1.19-alpine as base
+FROM golang:1.19-alpine as local
+
+ENV USER=yyyoichi USER_ID=1000 USER_GID=1000
+
+# now creating user
+RUN apk add doas; \
+    addgroup -g ${USER_GID} -S ${USER} && \
+    adduser  -u ${USER_ID} -G ${USER}  -s /bin/sh -D ${USER} &&  \
+    echo ${USER} | chpasswd; \
+    echo "permit ${USER} as root" > /etc/doas.d/doas.conf
 
 WORKDIR /workspace/api/
 
-# COPY go.mod go.sum ./
-# RUN go mod download
+USER root
+
 COPY ./ ./
-
 RUN go mod tidy
-
-# CMD ["./main"]
-
-FROM base as local
-
-# RUN go install -v github.com/cweill/gotests/gotests \
-#   github.com/fatih/gomodifytags \
-#   github.com/josharian/impl \
-#   github.com/haya14busa/goplay/cmd/goplay \
-#   github.com/go-delve/delve/cmd/dlv \
-#   honnef.co/go/tools/cmd/staticcheck \
-#   golang.org/x/tools/gopls \
-#   github.com/ramya-rao-a/go-outline 
+RUN apk add build-base
 RUN apk add git
+
+RUN chown -R ${USER_ID}:${USER_GID} /workspace/api/
+USER ${USER}
+
