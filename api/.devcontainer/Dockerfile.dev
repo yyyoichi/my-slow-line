@@ -1,23 +1,35 @@
 FROM golang:1.19-alpine as local
 
-ENV USER=yyyoichi USER_ID=1000 USER_GID=1000
+ENV USER=yyyoichi \
+    USER_ID=1000 \
+    USER_GID=1000 \
+    PASSWORD=pass
 
 # now creating user
 RUN apk add doas; \
     addgroup -g ${USER_GID} -S ${USER} && \
     adduser  -u ${USER_ID} -G ${USER}  -s /bin/sh -D ${USER} &&  \
-    echo ${USER} | chpasswd; \
+    echo ${USER}:${PASSWORD} | chpasswd; \
     echo "permit ${USER} as root" > /etc/doas.d/doas.conf
-
-WORKDIR /workspace/api/
 
 USER root
 
+WORKDIR /workspace/api/
 COPY ./ ./
-RUN go mod tidy
-RUN apk add build-base
-RUN apk add git
+RUN chown -R ${USER_ID}:${USER_GID} /workspace/api/ &&\
+    mkdir -p /go/pkg/mod && chown -R ${USER}:${USER} /go/pkg/mod && \
+    mkdir -p /usr/local/go && chown -R ${USER}:${USER} /usr/local/go && \
+    mkdir -p /go/pkg/sumdb && chown -R ${USER}:${USER} /go/pkg/sumdb && \
+    apk add build-base && \
+    apk add git
 
-RUN chown -R ${USER_ID}:${USER_GID} /workspace/api/
 USER ${USER}
 
+RUN go mod tidy && \
+    /usr/local/go/bin/go install -v github.com/cweill/gotests/gotests@v1.6.0 && \
+    /usr/local/go/bin/go install -v github.com/fatih/gomodifytags@v1.16.0 && \
+    /usr/local/go/bin/go install -v github.com/josharian/impl@v1.1.0 && \
+    /usr/local/go/bin/go install -v github.com/haya14busa/goplay/cmd/goplay@v1.0.0 && \
+    /usr/local/go/bin/go install -v github.com/go-delve/delve/cmd/dlv@latest && \
+    /usr/local/go/bin/go install -v honnef.co/go/tools/cmd/staticcheck@latest && \
+    /usr/local/go/bin/go install -v golang.org/x/tools/gopls@latest
