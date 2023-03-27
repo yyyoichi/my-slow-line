@@ -10,7 +10,6 @@ services:
     build:
       context: app/
       dockerfile: .devcontainer/Dockerfile.dev
-      target: local
     container_name: "app"
     ports:
       - "127.0.0.1:3000:3000"
@@ -34,18 +33,22 @@ services:
     volumes:
       - .:/workspace:cached
     environment:
-      - DB_HOST=db
+      - DB_HOST=mariadb
       - DB_USER=appuser
-      - DB_PASSWOR=p@55w0rd%!
+      - DB_PASSWOR=password
       - DB_DATABASE=message
+      - DB_PORT=3306
   db:
     image: mariadb:10.4
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_DATABASE=message
       - MYSQL_USER=appuser
-      - MYSQL_PASSWORD=p@55w0rd%!
+      - MYSQL_PASSWORD=password
+      - MYSQL_TCP_PORT=3306
     container_name: mariadb
+    ports:
+      - "127.0.0.1:3306:3306"
     restart: always
     volumes:
       - ./db/init.d:/docker-entrypoint-initdb.d
