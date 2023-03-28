@@ -8,18 +8,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type MariaDB struct {
-	DB *sql.DB
-}
-
-func GetDB() *MariaDB {
-	db, err := getDatabase()
-	if err != nil {
-		fmt.Println(err)
-	}
-	return &MariaDB{DB: db}
-}
-
 func getConf() string {
 	user := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWOR")
@@ -33,7 +21,7 @@ func getConf() string {
 	return conf
 }
 
-func getDatabase() (*sql.DB, error) {
+func GetDatabase() (*sql.DB, error) {
 	var db *sql.DB
 	db, err := sql.Open("mysql", getConf())
 	if err != nil {

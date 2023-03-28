@@ -3,15 +3,17 @@ package database
 import "testing"
 
 func TestDatabaseConnection(t *testing.T) {
-	db := GetDB()
+	db, err := GetDatabase()
+	if err != nil {
+		t.Errorf("got db error '%s'", err)
+	}
 	if db == nil {
 		t.Errorf("cannot connect db")
 		return
 	}
-	defer db.DB.Close()
+	defer db.Close()
 
-	err := db.DB.Ping()
-	if err != nil {
+	if db.Ping() != nil {
 		t.Errorf("db ping error got='%s'", err)
 	}
 }
