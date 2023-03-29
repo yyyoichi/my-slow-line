@@ -15,7 +15,7 @@ func getConf() string {
 	port := os.Getenv("DB_PORT")
 	dbname := os.Getenv("DB_DATABASE")
 	conf := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s",
+		"%s:%s@tcp(%s:%s)/%s?parseTime=true",
 		user, password, host, port, dbname,
 	)
 	return conf
