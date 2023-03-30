@@ -22,8 +22,6 @@ type SigninBody struct {
 }
 
 func SigninHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
 	// parse body
 	b := &SigninBody{}
 	if err := decode.DecodeBody(r, b); err != nil {

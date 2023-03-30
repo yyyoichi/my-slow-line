@@ -17,13 +17,15 @@ func main() {
 }
 func handler() {
 	r := mux.NewRouter()
-	r.HandleFunc("/", Index).Methods(http.MethodGet)
-	r.HandleFunc("/safe", Safe).Methods(http.MethodGet)
-	r.HandleFunc("/post", Post).Methods(http.MethodPost)
-	r.HandleFunc("/post", Preflight).Methods(http.MethodOptions)
-	r.HandleFunc("/signin", handlers.SigninHandler).Methods(http.MethodPost)
-	r.Use(middleware.CROSMiddleware)
-	r.Use(middleware.CSRFMiddleware)
+	api := r.PathPrefix("/api/").Subrouter()
+	api.HandleFunc("/", Index).Methods(http.MethodGet)
+	api.HandleFunc("/safe", Safe).Methods(http.MethodGet)
+	api.HandleFunc("/post", Post).Methods(http.MethodPost)
+	api.HandleFunc("/post", Preflight).Methods(http.MethodOptions)
+	api.HandleFunc("/signin", handlers.SigninHandler).Methods(http.MethodPost)
+	api.HandleFunc("/me", handlers.MeHandler).Methods(http.MethodGet)
+	api.Use(middleware.CROSMiddleware)
+	api.Use(middleware.CSRFMiddleware)
 	http.ListenAndServe(":8080", r)
 }
 
