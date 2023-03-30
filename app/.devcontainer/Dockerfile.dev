@@ -1,14 +1,31 @@
-FROM node:18-alpine as base
+FROM node:18-alpine
 
-RUN npm i -g npm
+ENV USER=node \
+    USER_ID=1000 \
+    USER_GID=1000 \
+    PASSWORD=pass
 
-RUN  apk update
+# create user
+RUN apk add --no-cache shadow && \
+    usermod -u ${USER_ID} ${USER} && \
+    groupmod -g ${USER_GID} ${USER} && \
+    apk add doas; \
+    echo ${USER}:${PASSWORD} | chpasswd && \
+    echo "permit ${USER} as root" > /etc/doas.d/doas.conf && \
+    apk del shadow
 
+# install global dependencies
+RUN npm i -g npm && \
+    apk update && \
+    apk add git
+
+# copy application files and install local dependencies
 WORKDIR /workspace/app
 COPY ./ ./
 RUN npm i
 
-FROM base as local
+# set user permissions
+RUN chown -R ${USER}:${USER} /workspace/app
 
-RUN apk add git
-
+# switch to non-root user
+USER ${USER}
