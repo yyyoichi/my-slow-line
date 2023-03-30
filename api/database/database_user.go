@@ -116,6 +116,30 @@ func DeleteUserRow(db *sql.DB, userId int) error {
 	return nil
 }
 
+func DeleteUserRowWithEmail(db *sql.DB, email string) error {
+	// validate
+	if email == "" {
+		return ErrInValidParams
+	}
+	// connect db
+	if db == nil {
+		var err error
+		db, err = GetDatabase()
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+	}
+
+	// exec delete row
+	s := `DELETE FROM users WHERE email = ?`
+	_, err := db.Exec(s, email)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // ユーザの削除
 func DeleteUser(db *sql.DB, userId int) error {
 	// validate

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"himakiwa/handlers"
 	"himakiwa/middleware"
 	"net/http"
 
@@ -20,6 +21,7 @@ func handler() {
 	r.HandleFunc("/safe", Safe).Methods(http.MethodGet)
 	r.HandleFunc("/post", Post).Methods(http.MethodPost)
 	r.HandleFunc("/post", Preflight).Methods(http.MethodOptions)
+	r.HandleFunc("/signin", handlers.SigninHandler).Methods(http.MethodPost)
 	r.Use(middleware.CROSMiddleware)
 	r.Use(middleware.CSRFMiddleware)
 	http.ListenAndServe(":8080", r)

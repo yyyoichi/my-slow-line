@@ -38,6 +38,7 @@ services:
       - DB_PASSWOR=password
       - DB_DATABASE=message
       - DB_PORT=3306
+      - JWT_SECRET=devjwtsecret
   db:
     image: mariadb:10.4
     environment:
