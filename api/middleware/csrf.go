@@ -9,7 +9,6 @@ import (
 
 var key = []byte("xox-oxo-xox-oxo-xox-oxo-xox-oxo-")
 var CSRFMiddleware = csrf.Protect(key,
-	csrf.Secure(false),
 	csrf.SameSite(csrf.SameSiteStrictMode),
 	csrf.ErrorHandler(http.HandlerFunc(csrfError)),
 )

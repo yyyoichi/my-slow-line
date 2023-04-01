@@ -70,8 +70,10 @@ services:
     image: nginx:alpine
     volumes:
       - ./nginx:/etc/nginx/conf.d/
+      - ./nginx/cert/:/etc/certs/:ro
     ports:
       - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
     tty: true
     environment:
       TZ: Asia/Tokyo
