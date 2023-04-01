@@ -4,7 +4,7 @@ export class TokenizedFetch {
   readonly instance: AxiosInstance;
   constructor() {
     this.instance = axios.create({
-      baseURL: 'http://127.0.0.1:8080',
+      baseURL: '/api',
       withCredentials: true,
     });
   }

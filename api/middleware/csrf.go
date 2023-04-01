@@ -10,7 +10,7 @@ import (
 var key = []byte("xox-oxo-xox-oxo-xox-oxo-xox-oxo-")
 var CSRFMiddleware = csrf.Protect(key,
 	csrf.Secure(false),
-	csrf.TrustedOrigins([]string{"http://127.0.0.1:3000"}),
+	csrf.SameSite(csrf.SameSiteStrictMode),
 	csrf.ErrorHandler(http.HandlerFunc(csrfError)),
 )
 

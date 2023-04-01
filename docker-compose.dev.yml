@@ -17,11 +17,12 @@ services:
     volumes:
       - .:/workspace:cached
       - node_modules:/workspace/app/node_modules
-    # command:
-    #   - 'sh'
-    #   - '-c'
-    #   - >-
-    #     npm run dev
+    command:
+      - 'sh'
+      - '-c'
+      - >-
+        npm run dev
+  
   api:
     build:
       context: api/
@@ -39,6 +40,7 @@ services:
       - DB_DATABASE=message
       - DB_PORT=3306
       - JWT_SECRET=devjwtsecret
+      - NODE_ENV=development
   db:
     image: mariadb:10.4
     environment:
@@ -64,11 +66,12 @@ services:
     ports:
       - "8888:8080"
 
-  # nginx:
-  #   build: ./nginx
-  #   volumes:
-  #     - ./nginx:/etc/nginx/conf.d/
-  #   ports:
-  #     - "127.0.0.1:80:80"
-    # depends_on:
-    #   - app
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx:/etc/nginx/conf.d/
+    ports:
+      - "127.0.0.1:80:80"
+    tty: true
+    environment:
+      TZ: Asia/Tokyo
