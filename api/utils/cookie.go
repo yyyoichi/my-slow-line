@@ -9,7 +9,7 @@ func newCookie(name, value string) *http.Cookie {
 	return &http.Cookie{
 		MaxAge:   int(time.Now().AddDate(0, 0, 7).Unix()),
 		HttpOnly: true,
-		Secure:   false, // develop
+		Secure:   true, 
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
 	}

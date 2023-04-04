@@ -9,5 +9,6 @@
     }
   },
   "shutdownAction": "none",
-  "forwardPorts": ["localhost:3000"]
+  "forwardPorts": ["localhost:3000"],
+  "remoteUser": "node"
 }

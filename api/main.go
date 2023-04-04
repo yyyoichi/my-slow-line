@@ -17,11 +17,10 @@ func main() {
 }
 func handler() {
 	r := mux.NewRouter()
-	api := r.PathPrefix("/api/").Subrouter()
+	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/", Index).Methods(http.MethodGet)
 	api.HandleFunc("/safe", Safe).Methods(http.MethodGet)
 	api.HandleFunc("/post", Post).Methods(http.MethodPost)
-	api.HandleFunc("/post", Preflight).Methods(http.MethodOptions)
 	api.HandleFunc("/signin", handlers.SigninHandler).Methods(http.MethodPost)
 	api.HandleFunc("/me", handlers.MeHandler).Methods(http.MethodGet)
 	api.Use(middleware.CROSMiddleware)
@@ -42,13 +41,6 @@ func Index(w http.ResponseWriter, r *http.Request) {
 func Safe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-CSRF-Token", csrf.Token(r))
 	w.WriteHeader(http.StatusOK)
-}
-
-func Preflight(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
 }
 
 func Post(w http.ResponseWriter, r *http.Request) {

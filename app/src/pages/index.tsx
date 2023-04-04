@@ -26,11 +26,13 @@ export default function Home() {
     onlick();
   }, []);
   return (
-    <div>
-      <h1>Hello world</h1>
-      <p>hello</p>
-      <button onClick={onlick}>fetch</button>
-      {/* <div>{state}</div> */}
-    </div>
+    <>
+      <div>
+        <h1>Hello world!!!</h1>
+        <p>hello</p>
+        <button onClick={onlick}>fetch</button>
+        {/* <div>{state}</div> */}
+      </div>
+    </>
   );
 }

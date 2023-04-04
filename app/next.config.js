@@ -3,4 +3,4 @@ const nextConfig = {
   /* config options here */
 };
 
-exports.module = nextConfig;
+module.exports = nextConfig;
