@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"himakiwa/auth"
 	"himakiwa/database"
 	"himakiwa/handlers/decode"
 	"himakiwa/utils"
@@ -51,7 +52,7 @@ func SigninHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// set-cookie jwt-token
-	jt := utils.NewJwt(os.Getenv("JWT_SECRET"))
+	jt := auth.NewJwt(os.Getenv("JWT_SECRET"))
 	token, err := jt.Generate(fmt.Sprintf("%d", userId))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
