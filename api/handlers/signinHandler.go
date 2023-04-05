@@ -3,13 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"himakiwa/auth"
 	"himakiwa/database"
 	"himakiwa/handlers/decode"
-	"himakiwa/utils"
 	"net/http"
-	"os"
 )
 
 var (
@@ -37,8 +34,10 @@ func SigninHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	code := auth.GenerateRandomSixNumber()
+
 	// write db
-	u := &database.SignInUser{Name: b.Name, Email: b.Email, Password: b.Password}
+	u := &database.SignInUser{Name: b.Name, Email: b.Email, Password: b.Password, VerificationCode: code}
 	userId, err := u.SignIn(db)
 	if err != nil {
 		result, err := database.ExistEmail(db, u.Email)
@@ -51,13 +50,8 @@ func SigninHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// set-cookie jwt-token
-	jt := auth.NewJwt(os.Getenv("JWT_SECRET"))
-	token, err := jt.Generate(fmt.Sprintf("%d", userId))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	utils.SetJWTCookie(w, token)
+	// send code
+	// send id
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(userId)
 }
