@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"himakiwa/database"
 	"himakiwa/handlers"
 	"himakiwa/middleware"
 	"net/http"
@@ -11,10 +12,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func init() {
+	database.Connect()
+}
+
 func main() {
 	fmt.Println("hello")
 	handler()
 }
+
 func handler() {
 	r := mux.NewRouter()
 	api := r.PathPrefix("/api").Subrouter()

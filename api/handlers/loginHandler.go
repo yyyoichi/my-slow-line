@@ -21,7 +21,11 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// connect db
-	db, err := database.GetDatabase()
+	db := database.DB
+
+	// auth
+	u := database.LoginUser{Email: b.Email, Password: b.Password}
+	du, err := u.Login(db)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

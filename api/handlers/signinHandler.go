@@ -28,11 +28,7 @@ func SigninHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// connect db
-	db, err := database.GetDatabase()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	db := database.DB
 
 	code := auth.GenerateRandomSixNumber()
 

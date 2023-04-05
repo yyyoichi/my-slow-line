@@ -26,8 +26,12 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// db connection
+	db := database.DB
+
 	// get from db
-	du, err := database.QueryUser(nil, userId)
+	du, err := database.QueryUser(db, userId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

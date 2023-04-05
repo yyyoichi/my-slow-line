@@ -32,11 +32,7 @@ func VerificateTwoStepCodeHandler(w http.ResponseWriter, r *http.Request) {
 	userId := b.Id
 
 	// connect db
-	db, err := database.GetDatabase()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	db := database.DB
 
 	// get user
 	du, err := database.QueryUser(db, userId)
