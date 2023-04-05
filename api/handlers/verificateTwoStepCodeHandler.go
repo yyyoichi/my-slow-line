@@ -45,7 +45,7 @@ func VerificateTwoStepCodeHandler(w http.ResponseWriter, r *http.Request) {
 	result := auth.VerificateSixNumber(b.Code, du.TwoStepVerificationCode, du.LoginAt)
 	if !result {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrExistEmail)
+		json.NewEncoder(w).Encode(ErrInvalidCode)
 		return
 	}
 

@@ -46,7 +46,12 @@ func SigninHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// send code
+	// send codes
+	err = auth.SendCode(u.Email, code)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	// send id
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(userId)

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"himakiwa/auth"
 	"himakiwa/database"
 	"himakiwa/handlers/decode"
 	"net/http"
@@ -27,20 +28,26 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	u := database.LoginUser{Email: b.Email, Password: b.Password}
 	du, err := u.Login(db)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	userId := du.Id
 
-	// auth
-	u := database.LoginUser{Email: b.Email, Password: b.Password}
-	du, err := u.Login(db)
+	// update login stamp and twostep code
+	code := auth.GenerateRandomSixNumber()
+	err = database.LogEntryStamp(db, userId, code)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// send code
+	err = auth.SendCode(u.Email, code)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	// send id
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(du.Id)
+	json.NewEncoder(w).Encode(userId)
 }
