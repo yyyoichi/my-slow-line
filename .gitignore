@@ -1,5 +1,6 @@
 db-data
 nginx/log/
+.env
 
 # dependencies
 /node_modules

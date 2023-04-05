@@ -3,10 +3,20 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 )
+
+var DB *sql.DB
+
+func Connect() {
+	DB, err := GetDatabase()
+	if err != nil || DB.Ping() != nil {
+		log.Panic(err, DB.Ping())
+	}
+}
 
 func getConf() string {
 	user := os.Getenv("DB_USER")

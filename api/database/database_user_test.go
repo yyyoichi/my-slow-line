@@ -2,19 +2,22 @@ package database
 
 import (
 	"database/sql"
+	"himakiwa/auth"
 	"testing"
 )
 
 func TestCreateUser(t *testing.T) {
 	test := &SignInUser{
-		Email:    "demo@demodemo",
-		Password: "password",
-		Name:     "name",
+		Email:            "demo@demodemo",
+		Password:         "password",
+		Name:             "name",
+		VerificationCode: auth.GenerateRandomSixNumber(),
 	}
 	id, err := test.SignIn(nil)
 	if err != nil {
 		t.Errorf("occur error got='%s'", err)
 	}
+	defer DeleteUserRow(nil, id)
 
 	if id == 0 {
 		t.Error("id expected int64 but got nil")
@@ -33,15 +36,17 @@ func TestExistUser(t *testing.T) {
 	defer db.Close()
 
 	test := &SignInUser{
-		Email:    "demo@demodemo.com",
-		Password: "password",
-		Name:     "name",
+		Email:            "demo@demodemo.com",
+		Password:         "password",
+		Name:             "name",
+		VerificationCode: auth.GenerateRandomSixNumber(),
 	}
 	id, err := test.SignIn(db)
 	t.Logf("\ncreate user id='%d'", id)
 	if err != nil {
 		t.Errorf("occur error got='%s'", err)
 	}
+	defer DeleteUserRow(nil, id)
 
 	result, err := ExistEmail(db, test.Email)
 	if err != nil {
@@ -76,10 +81,13 @@ func TestQueryUser(t *testing.T) {
 	}
 	defer db.Close()
 
+	verificationCode := auth.GenerateRandomSixNumber()
+
 	u := &SignInUser{
-		Name:     "yaoyao",
-		Email:    "email@examle.com",
-		Password: "password",
+		Name:             "yaoyao",
+		Email:            "email@examle.com",
+		Password:         "password",
+		VerificationCode: verificationCode,
 	}
 	userId, del := testmok(t, db, u)
 	defer del()
@@ -108,6 +116,13 @@ func TestQueryUser(t *testing.T) {
 	if du.LoginAt.IsZero() {
 		t.Errorf("expected login_at but it is zero")
 	}
+
+	if du.TwoStepVerificationCode != verificationCode {
+		t.Errorf("expected twostep code is %s but got='%s'", verificationCode, du.TwoStepVerificationCode)
+	}
+	if du.TwoVerificated {
+		t.Errorf("expected deleted flag is false but got='true'")
+	}
 }
 
 func TestLoginUser(t *testing.T) {
@@ -117,10 +132,13 @@ func TestLoginUser(t *testing.T) {
 	}
 	defer db.Close()
 
+	verificationCode := auth.GenerateRandomSixNumber()
+
 	u := &SignInUser{
-		Email:    "test@example.com",
-		Name:     "testuser",
-		Password: "password",
+		Email:            "test@example.com",
+		Name:             "testuser",
+		Password:         "password",
+		VerificationCode: verificationCode,
 	}
 	userId, del := testmok(t, db, u)
 	defer del()
@@ -147,10 +165,13 @@ func TestInvalidLogin(t *testing.T) {
 	}
 	defer db.Close()
 
+	verificationCode := auth.GenerateRandomSixNumber()
+
 	u := &SignInUser{
-		Email:    "test@example.com",
-		Name:     "testuser",
-		Password: "password",
+		Email:            "test@example.com",
+		Name:             "testuser",
+		Password:         "password",
+		VerificationCode: verificationCode,
 	}
 	_, del := testmok(t, db, u)
 	defer del()
@@ -168,7 +189,7 @@ func TestInvalidLogin(t *testing.T) {
 		{
 			email: "testtest@example.com",
 			pass:  "password",
-			err:   ErrInvalidEmail,
+			err:   sql.ErrNoRows,
 		},
 		{
 			email: "",
@@ -182,7 +203,7 @@ func TestInvalidLogin(t *testing.T) {
 		},
 	}
 
-	for _, tt := range test {
+	for i, tt := range test {
 		lu := &LoginUser{
 			Email:    tt.email,
 			Password: tt.pass,
@@ -190,7 +211,38 @@ func TestInvalidLogin(t *testing.T) {
 		_, err := lu.Login(db)
 
 		if err != tt.err {
-			t.Error("expeced err is '%w' but got='%w'", tt.err, err)
+			t.Errorf("%d expeced err is '%v' but got='%v'", i, tt.err, err)
 		}
 	}
+}
+
+func TestUpdateCode(t *testing.T) {
+	db, err := GetDatabase()
+	if err != nil {
+		t.Error(err)
+	}
+	defer db.Close()
+
+	u := &SignInUser{
+		Email:            "test@example.com",
+		Name:             "testuser",
+		Password:         "password",
+		VerificationCode: auth.GenerateRandomSixNumber(),
+	}
+	userId, del := testmok(t, db, u)
+	defer del()
+
+	verificationCode := auth.GenerateRandomSixNumber()
+	LogEntryStamp(db, userId, verificationCode)
+
+	du, err := QueryUser(db, userId)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if du.TwoStepVerificationCode != verificationCode {
+		t.Errorf("expected code '%s' but got='%s'", verificationCode, du.TwoStepVerificationCode)
+	}
+
 }
