@@ -1,5 +1,6 @@
 import { EmailFrameProps, EmailFrame } from 'components/frame/EmailFrame';
 import { LoadButton, LoadButtonProps } from 'components/frame/LoadButton';
+import FormFrame from 'components/frame/FormFrame';
 import { PasswordFrameProps, PasswordFrame, PasswordFieldProps, PasswordField } from 'components/frame/PasswordFrame';
 import React from 'react';
 
@@ -11,27 +12,26 @@ export type UserBasicSigninFormProps = {
 };
 
 export const UserBasicSigninForm = (props: UserBasicSigninFormProps) => {
-  const Wrap = ({ children }: { children: React.ReactNode }) => <div className='px-4 py-1'>{children}</div>;
   return (
     <>
-      <div className='flex flex-col gap-3 rounded-md bg-my-light-black py-2 '>
+      <FormFrame.Container>
         <h2 className='text-center text-3xl'>
           WELCOME TO
           <div className='py-2 font-extrabold text-my-yellow shadow-sm'>Ctrl+</div>
         </h2>
-        <Wrap>
+        <FormFrame.Content>
           <EmailFrame {...props.email} />
-        </Wrap>
-        <Wrap>
+        </FormFrame.Content>
+        <FormFrame.Content>
           <PasswordFrame {...props.password} />
           <div className='my-2'>
             <PasswordField {...props.confirmPassword} />
           </div>
-        </Wrap>
+        </FormFrame.Content>
         <div className='mx-auto w-1/3  py-4'>
           <SendButton {...props.sendButton} />
         </div>
-      </div>
+      </FormFrame.Container>
     </>
   );
 };
