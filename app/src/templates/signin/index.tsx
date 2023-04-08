@@ -2,6 +2,7 @@ import React from 'react';
 import { UiHead, UiMain, UiYCenter } from 'components/frame';
 import { UserBasicSigninForm, UserBasicSigninFormProps } from 'components/signin/UserBasicSigninForm';
 import { UserNameForm, UserNameFormProps } from 'components/signin/UserNameForm';
+import { VerificationCodeForm, VerificationCodeFormProps } from 'components/frame/VerificationCodeForm';
 
 export default function Signin() {
   const userBasicSigninFormProps: UserBasicSigninFormProps = {
@@ -48,6 +49,26 @@ export default function Signin() {
     },
   };
 
+  const verificationCodeFormProps: VerificationCodeFormProps = {
+    name: {
+      input: {
+        value: '000000',
+        onChange: () => console.log('click'),
+        readOnly: false,
+      },
+      description: {
+        value: '6 code',
+      },
+      coution: {
+        value: '',
+      },
+    },
+    sendButton: {
+      active: false,
+      onClick: () => console.log('click'),
+    },
+  };
+
   const userNameFormProps: UserNameFormProps = {
     name: {
       input: {
@@ -73,6 +94,7 @@ export default function Signin() {
       <UiHead />
       <UiYCenter>
         <UserBasicSigninForm {...userBasicSigninFormProps} />
+        <VerificationCodeForm {...verificationCodeFormProps} />
         <UserNameForm {...userNameFormProps} />
       </UiYCenter>
     </UiMain>
