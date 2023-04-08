@@ -7,10 +7,16 @@ export type LoadButtonProps = {
   active: boolean;
 } & UiButtonProps;
 
-export const LoadButton = ({ active, className = '', color, children, ...props }: LoadButtonProps) => {
+export const LoadButton = ({ active, className = '', color, children, onClick, ...props }: LoadButtonProps) => {
   const Child = active ? children : <UiLoader color={getPairColor(color)} />;
+  const onclick = active ? onClick : undefined;
   return (
-    <UiButton className={`w-full text-center ${active ? 'cursor-pointer' : ''} ${className}`} color={color} {...props}>
+    <UiButton
+      className={`w-full text-center ${active ? 'cursor-pointer' : ''} ${className}`}
+      color={color}
+      onClick={onclick}
+      {...props}
+    >
       {Child}
     </UiButton>
   );
