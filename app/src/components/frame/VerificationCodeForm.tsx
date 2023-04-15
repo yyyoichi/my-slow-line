@@ -4,13 +4,13 @@ import { LoadButtonProps, LoadButton } from 'components/frame/LoadButton';
 import { TextInputFrame, TextInputFrameProps } from 'components/frame/TextInputFrame';
 
 export type VerificationCodeFormProps = {
-  name: Pick<TextInputFrameProps, 'input' | 'description' | 'coution'>;
+  code: Pick<TextInputFrameProps, 'input' | 'description' | 'coution'>;
   sendButton: SendButtonProps;
 };
 
 export const VerificationCodeForm = (props: VerificationCodeFormProps) => {
   const textInputProps: TextInputFrameProps = {
-    ...props.name,
+    ...props.code,
     label: {
       value: 'Code',
     },
