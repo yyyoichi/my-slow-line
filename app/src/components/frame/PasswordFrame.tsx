@@ -27,6 +27,7 @@ export const PasswordField = (props: PasswordFieldProps) => {
   };
   const inputProps: UiInputProps = {
     type: visiblePassword ? 'password' : 'text',
+    className: visiblePassword ? 'text-[1.3rem]' : '',
     ...props.input,
   };
   return (
