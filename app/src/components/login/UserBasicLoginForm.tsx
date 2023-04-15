@@ -14,6 +14,7 @@ export const UserBasicLoginForm = (props: UserBasicLoginFormProps) => {
   return (
     <>
       <FormFrame.Container>
+        <h2 className='text-center text-3xl'>Login</h2>
         <FormFrame.Content>
           <EmailFrame {...props.email} />
         </FormFrame.Content>
