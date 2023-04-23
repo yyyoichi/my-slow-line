@@ -22,25 +22,28 @@ export type SwitchAnimContentProps<T extends string> = Pick<FadeAnimProps, 'chil
   content: T;
 };
 
+/**Only after matching the context will the content be switched.  */
 export const SwitchAnimContent = <T extends string>({ content, children }: SwitchAnimContentProps<T>) => {
   const cxt = React.useContext(SwitchContentContext);
+  const [state, setState] = React.useState<boolean>();
   const eq = cxt === content;
+
+  React.useEffect(() => {
+    setState((ps) => {
+      // mount -> false ... not work
+      if (typeof ps === 'undefined' && !eq) return undefined;
+      return eq;
+    });
+  }, [eq, state]);
+
+  // at first non-display
+  if (typeof state === 'undefined') {
+    return <></>;
+  }
+
   const fadeProps: FadeAnimProps = {
     in: eq,
     children,
   };
   return <FadeAnim {...fadeProps} />;
 };
-
-export function Switch<T extends string>({ content }: { content: T }) {
-  return {
-    Content: ({ content: contentName, children }: SwitchAnimContextProps<T>) => {
-      const eq = contentName === content;
-      const fadeProps: FadeAnimProps = {
-        in: eq,
-        children,
-      };
-      return <FadeAnim {...fadeProps} />;
-    },
-  };
-}
