@@ -9,7 +9,7 @@ export const FullScreentitle = ({ active }: FullScreenTitleProps) => {
   return (
     <Backscreen className='absolute'>
       <FadeAnim in={Boolean(active)}>
-        <div className='flex h-screen w-screen items-center justify-center'>
+        <div className='flex min-h-screen w-screen items-center justify-center overflow-hidden'>
           <h1 className='text-3xl'>
             Ctrl<span className='text-my-yellow'>+</span>
           </h1>
