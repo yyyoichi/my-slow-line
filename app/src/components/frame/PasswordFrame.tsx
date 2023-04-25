@@ -12,9 +12,10 @@ import {
   UiInput,
 } from 'components/atoms/input';
 import { useState } from 'react';
+import { NonNullablePick } from 'components';
 
 export type PasswordFieldProps = {
-  input: Pick<UiInputProps, 'value' | 'onChange' | 'readOnly'>;
+  input: NonNullablePick<UiInputProps, 'value' | 'onChange' | 'readOnly'>;
 };
 
 export const PasswordField = (props: PasswordFieldProps) => {

@@ -2,6 +2,7 @@ import React from 'react';
 import FormFrame from 'components/frame/FormFrame';
 import { LoadButtonProps, LoadButton } from 'components/frame/LoadButton';
 import { TextInputFrame, TextInputFrameProps } from 'components/frame/TextInputFrame';
+import { NonNullablePick } from 'components';
 
 export type UserNameFormProps = {
   name: Pick<TextInputFrameProps, 'input' | 'description' | 'coution'>;
@@ -35,7 +36,7 @@ export const UserNameForm = (props: UserNameFormProps) => {
 
 // send button
 
-type SendButtonProps = Pick<LoadButtonProps, 'active' | 'onClick'>;
+type SendButtonProps = NonNullablePick<LoadButtonProps, 'active' | 'onClick'>;
 
 const SendButton = (props: SendButtonProps) => {
   const loadButtonProps: LoadButtonProps = {
