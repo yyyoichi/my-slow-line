@@ -36,12 +36,6 @@ func SigninHandler(w http.ResponseWriter, r *http.Request) {
 	u := &database.SignInUser{Name: b.Name, Email: b.Email, Password: b.Password, VerificationCode: code}
 	userId, err := u.SignIn(db)
 	if err != nil {
-		result, err := database.ExistEmail(db, u.Email)
-		if result {
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(ErrExistEmail)
-			return
-		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

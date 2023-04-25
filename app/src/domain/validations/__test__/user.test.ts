@@ -1,4 +1,13 @@
-import { EmailValidation, ErrorEmail, ErrorName, ErrorPassword, NameValidation, PasswordValidation } from '../user';
+import {
+  ConfirmPasswordValidataion,
+  EmailValidation,
+  ErrorConfirmPassword,
+  ErrorEmail,
+  ErrorName,
+  ErrorPassword,
+  NameValidation,
+  PasswordValidation,
+} from '../user';
 import { NOT_NULL_ERROR } from '../validation';
 
 describe('validation password', () => {
@@ -21,6 +30,32 @@ describe('validation password', () => {
     },
   ];
   const pv = new PasswordValidation();
+  const sep = ',';
+  test.each(tests)("invalid-password '%s' expecte to cause '%v' errors.", ({ value, error }) => {
+    const result = pv.validate(value);
+    expect(result.getError(sep)).toBe(error.join(sep));
+  });
+});
+
+describe('confirm password', () => {
+  const tests: {
+    value: [string, string];
+    error: string[];
+  }[] = [
+    {
+      value: ['password', 'password'],
+      error: [''],
+    },
+    {
+      value: ['', 'passw'],
+      error: [NOT_NULL_ERROR, ErrorConfirmPassword.Equal],
+    },
+    {
+      value: ['passowrd', 'pa55word'],
+      error: [ErrorConfirmPassword.Equal],
+    },
+  ];
+  const pv = new ConfirmPasswordValidataion();
   const sep = ',';
   test.each(tests)("invalid-password '%s' expecte to cause '%v' errors.", ({ value, error }) => {
     const result = pv.validate(value);

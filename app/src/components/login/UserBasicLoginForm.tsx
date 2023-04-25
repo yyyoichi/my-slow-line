@@ -3,6 +3,7 @@ import { LoadButton, LoadButtonProps } from 'components/frame/LoadButton';
 import { PasswordFrameProps, PasswordFrame } from 'components/frame/PasswordFrame';
 import FormFrame from 'components/frame/FormFrame';
 import React from 'react';
+import { NonNullablePick } from 'components';
 
 export type UserBasicLoginFormProps = {
   password: PasswordFrameProps;
@@ -31,7 +32,7 @@ export const UserBasicLoginForm = (props: UserBasicLoginFormProps) => {
 
 // send button
 
-type SendButtonProps = Pick<LoadButtonProps, 'active' | 'onClick'>;
+type SendButtonProps = NonNullablePick<LoadButtonProps, 'active' | 'onClick'>;
 
 const SendButton = (props: SendButtonProps) => {
   const loadButtonProps: LoadButtonProps = {

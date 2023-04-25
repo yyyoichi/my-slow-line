@@ -9,10 +9,11 @@ import {
   UiInputCaution,
   UiInput,
 } from 'components/atoms/input';
+import { NonNullablePick } from 'components';
 
 // email components
 export type EmailFrameProps = {
-  input: Pick<UiInputProps, 'value' | 'onChange' | 'readOnly'>;
+  input: NonNullablePick<UiInputProps, 'value' | 'onChange' | 'readOnly'>;
   description: Pick<UiInputDescriptionProps, 'value'>;
   coution: Pick<UiInputCautionProps, 'value'>;
 };
