@@ -1,4 +1,6 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
+
+export const ErrorUnExpectedResponse = 'Sorry, occurs unexpected errors. Please try agin.';
 
 /**fetch api in csrf-safe */
 export const tokenizeFetch = async <T>(config: AxiosRequestConfig) => {
@@ -11,8 +13,5 @@ export const tokenizeFetch = async <T>(config: AxiosRequestConfig) => {
     ...config.headers,
     'X-Csrf-Token': token,
   };
-  const response = await instance.request<T>(config);
-  const data = await response.data;
-  if (response.status !== axios.HttpStatusCode.Ok) throw new Error(data as string);
-  return await response.data;
+  return await instance.request<T>(config);
 };

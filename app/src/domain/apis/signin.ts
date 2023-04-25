@@ -1,5 +1,5 @@
 import { AxiosRequestConfig } from 'axios';
-import { tokenizeFetch } from './axiosInstance';
+import { ErrorUnExpectedResponse, tokenizeFetch } from './axiosInstance';
 
 /**@return {number} userId */
 export const postSignin = async (email: string, password: string, name = '') => {
@@ -13,8 +13,35 @@ export const postSignin = async (email: string, password: string, name = '') => 
     url: 'signin',
   };
   try {
-    const data = await tokenizeFetch<number>(config);
-    return data;
+    const res = await tokenizeFetch<number>(config);
+    if (res.status === 200) {
+      return res.data;
+    }
+    throw new Error(ErrorUnExpectedResponse);
+  } catch (e) {
+    throw e;
+  }
+};
+
+/**@return {number} userId */
+export const postLogin = async (email: string, password: string) => {
+  const config: AxiosRequestConfig = {
+    data: {
+      email,
+      password,
+    },
+    method: 'POST',
+    url: 'login',
+  };
+  try {
+    const res = await tokenizeFetch<number>(config);
+    if (res.status === 200) {
+      return res.data;
+    }
+    if (res.status === 400) {
+      throw new Error('Could not login. Please check your email and password.');
+    }
+    throw new Error(ErrorUnExpectedResponse);
   } catch (e) {
     throw e;
   }
@@ -31,8 +58,11 @@ export const postVerificateCode = async (id: number, code: string) => {
     url: 'codein',
   };
   try {
-    await tokenizeFetch<unknown>(config);
-    return true;
+    const res = await tokenizeFetch<unknown>(config);
+    if (res.status === 200) {
+      return true;
+    }
+    throw new Error(ErrorUnExpectedResponse);
   } catch (e) {
     throw e;
   }

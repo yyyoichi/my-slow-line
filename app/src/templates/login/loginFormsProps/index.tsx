@@ -1,106 +1,55 @@
-import { SigninFormsProps } from 'components/signin';
-import {
-  EmailValidation,
-  PasswordValidation,
-  ConfirmPasswordValidataion,
-  NameValidation,
-  VerificationCodeValidataion,
-} from 'domain/validations';
-import { usePageLoadingState } from 'hooks/usePageLoadingState';
-import { useSigninFormState } from './useSigninFormState';
-import { useVerificationCodeState } from 'hooks/useVerificationCodeState';
-import { useBasicValidationState, useVerificationCodeValidationState } from './useValidationState';
-import { postSignin, postVerificateCode } from 'domain/apis';
 import { useRouter } from 'next/router';
+
+import { LoginFormsProps } from 'components/login';
+import { usePageLoadingState } from 'hooks/usePageLoadingState';
+import { useBasicValidationState, useVerificationCodeValidationState } from './useValidationState';
+import { useVerificationCodeState } from 'hooks/useVerificationCodeState';
+import { useLoginFormState } from './useLoingFormState';
+
+import { EmailValidation, PasswordValidation, VerificationCodeValidataion } from 'domain/validations';
+import { postLogin, postVerificateCode } from 'domain/apis/signin';
 
 const emailValidator = new EmailValidation();
 const passwordValidator = new PasswordValidation();
-const confirmPassValidator = new ConfirmPasswordValidataion();
-const nameValidator = new NameValidation();
 const verificataionCodeValidator = new VerificationCodeValidataion();
 
-export function useSigninFormsProps() {
+export function useLoginFormsProps() {
   const router = useRouter();
-  const pageState = usePageLoadingState<SigninFormsProps['switchContext']['content']>('name', false);
-  const basicState = useSigninFormState();
+  const pageState = usePageLoadingState<LoginFormsProps['switchContext']['content']>('basic', false);
+  const basicState = useLoginFormState();
   const codeState = useVerificationCodeState();
   const codeValidationState = useVerificationCodeValidationState();
   const basicValidationState = useBasicValidationState();
 
-  const props: SigninFormsProps = {
+  const props: LoginFormsProps = {
     switchContext: {
       content: pageState.currentPage,
-    },
-    userName: {
-      name: {
-        input: {
-          value: basicState.name,
-          onChange: (e) => basicState.setName(e.target.value),
-          readOnly: pageState.isLoading,
-        },
-        description: {
-          value: nameValidator.InputSuggestion,
-        },
-        coution: {
-          value: basicValidationState.validationState.name,
-        },
-      },
-      sendButton: {
-        active: !pageState.isLoading,
-        onClick: () => {
-          const page = pageState.presetPageAndStartLoading('basic');
-
-          const validatedName = nameValidator.validate(basicState.name);
-          if (!validatedName.isValid) {
-            basicValidationState.setNameState(validatedName.getError(' '));
-            page.resetCurrentPage();
-            return;
-          }
-
-          // checked form input.
-
-          page.goToNextPage();
-        },
-      },
     },
     basic: {
       email: {
         input: {
           value: basicState.email,
-          onChange: (e) => {
-            basicState.setEmail(e.target.value);
-          },
+          onChange: (e) => basicState.setEmail(e.target.value),
           readOnly: pageState.isLoading,
         },
         description: {
           value: emailValidator.InputSuggestion,
         },
         coution: {
-          value: basicValidationState.validationState.email,
+          value: basicValidationState.validationState.password,
         },
       },
       password: {
         input: {
           value: basicState.password,
-          onChange: (e) => {
-            basicState.setPassword(e.target.value);
-          },
+          onChange: (e) => basicState.setPassword(e.target.value),
           readOnly: pageState.isLoading,
         },
         description: {
           value: passwordValidator.InputSuggestion,
         },
         coution: {
-          value: basicValidationState.validationState.password,
-        },
-      },
-      confirmPassword: {
-        input: {
-          value: basicState.confirmPassword,
-          onChange: (e) => {
-            basicState.setConfirmPassword(e.target.value);
-          },
-          readOnly: pageState.isLoading,
+          value: basicValidationState.validationState.email,
         },
       },
       sendButton: {
@@ -108,24 +57,20 @@ export function useSigninFormsProps() {
         onClick: () => {
           // expecte code page after user-account is created.
           const page = pageState.presetPageAndStartLoading('code');
-
-          const { email, password, confirmPassword } = basicState;
-          const validatedEmail = emailValidator.validate(email);
-          const validatedPass = passwordValidator.validate(password);
-          const validatedConfPass = confirmPassValidator.validate([password, confirmPassword]);
-          if (!validatedEmail.isValid || !validatedPass.isValid || !validatedConfPass.isValid) {
-            const split = ' ';
+          const validatedEmail = emailValidator.validate(basicState.email);
+          const validatedPassword = passwordValidator.validate(basicState.password);
+          if (!validatedEmail.isValid || !validatedPassword.isValid) {
+            const split = '';
             basicValidationState.setBasicValidationState(
               validatedEmail.getError(split),
-              validatedPass.getError(split),
-              validatedConfPass.getError(split),
+              validatedPassword.getError(split),
             );
             page.resetCurrentPage();
             return;
           }
-          // checked form input.
+          // checked from input.
 
-          postSignin(email, password, basicState.name)
+          postLogin(basicState.email, basicState.password)
             .then((userId) => {
               if (!userId) throw new Error();
               codeState.setUserId(userId);
