@@ -1,3 +1,4 @@
+import React from 'react';
 import { SigninFormsProps } from 'components/signin';
 import {
   EmailValidation,
@@ -12,6 +13,7 @@ import { useVerificationCodeState } from 'hooks/useVerificationCodeState';
 import { useBasicValidationState, useVerificationCodeValidationState } from './useValidationState';
 import { postSignin, postVerificateCode } from 'domain/apis';
 import { useRouter } from 'next/router';
+import { MyAccountContext } from 'hooks';
 
 const emailValidator = new EmailValidation();
 const passwordValidator = new PasswordValidation();
@@ -20,7 +22,14 @@ const nameValidator = new NameValidation();
 const verificataionCodeValidator = new VerificationCodeValidataion();
 
 export function useSigninFormsProps() {
+  const ac = React.useContext(MyAccountContext);
   const router = useRouter();
+  React.useEffect(() => {
+    if (ac.myAccount.has) {
+      router.push('/');
+    }
+  }, [ac, router]);
+
   const pageState = usePageLoadingState<SigninFormsProps['switchContext']['content']>('name', false);
   const basicState = useSigninFormState();
   const codeState = useVerificationCodeState();
@@ -168,7 +177,7 @@ export function useSigninFormsProps() {
           // checked form input.
 
           postVerificateCode(codeState.userId, codeState.code)
-            .then(() => router.push('/'))
+            .then(() => ac.pullMyAccount())
             .catch(() => {
               alert('Sorry, occurs unexpected errors. Please try agin.');
               page.resetCurrentPage();

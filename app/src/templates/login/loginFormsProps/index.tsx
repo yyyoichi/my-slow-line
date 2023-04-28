@@ -1,3 +1,4 @@
+import React from 'react';
 import { useRouter } from 'next/router';
 
 import { LoginFormsProps } from 'components/login';
@@ -8,6 +9,7 @@ import { useLoginFormState } from './useLoingFormState';
 
 import { EmailValidation, PasswordValidation, VerificationCodeValidataion } from 'domain/validations';
 import { postLogin, postVerificateCode } from 'domain/apis/signin';
+import { MyAccountContext } from 'hooks';
 
 const emailValidator = new EmailValidation();
 const passwordValidator = new PasswordValidation();
@@ -15,6 +17,13 @@ const verificataionCodeValidator = new VerificationCodeValidataion();
 
 export function useLoginFormsProps() {
   const router = useRouter();
+  const ac = React.useContext(MyAccountContext);
+  React.useEffect(() => {
+    if (ac.myAccount.has) {
+      router.push('/');
+    }
+  }, [ac, router]);
+
   const pageState = usePageLoadingState<LoginFormsProps['switchContext']['content']>('basic', false);
   const basicState = useLoginFormState();
   const codeState = useVerificationCodeState();
@@ -113,7 +122,7 @@ export function useLoginFormsProps() {
           // checked form input.
 
           postVerificateCode(codeState.userId, codeState.code)
-            .then(() => router.push('/'))
+            .then(() => ac.pullMyAccount())
             .catch(() => {
               alert('Sorry, occurs unexpected errors. Please try agin.');
               page.resetCurrentPage();
