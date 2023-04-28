@@ -3,7 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"himakiwa/auth"
-	"himakiwa/database"
+	"himakiwa/services/database"
 	"os"
 	"testing"
 )

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"himakiwa/database"
+	"himakiwa/services/database"
 	"himakiwa/utils"
 	"net/http"
 	"strconv"

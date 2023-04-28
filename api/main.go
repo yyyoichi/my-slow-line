@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"himakiwa/database"
 	"himakiwa/handlers"
 	"himakiwa/middleware"
+	"himakiwa/services/database"
 	"net/http"
 
 	"github.com/gorilla/csrf"
