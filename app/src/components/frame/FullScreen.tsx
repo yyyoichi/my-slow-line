@@ -7,13 +7,11 @@ export type FullScreenTitleProps = {
 } & Pick<FadeAnimProps, 'children'>;
 export const FullScreentitle = ({ active }: FullScreenTitleProps) => {
   return (
-    <Backscreen className='absolute'>
+    <Backscreen className='absolute overflow-hidden'>
       <FadeAnim in={Boolean(active)}>
-        <div className='flex min-h-screen w-screen items-center justify-center overflow-hidden'>
-          <h1 className='text-3xl'>
-            Ctrl<span className='text-my-yellow'>+</span>
-          </h1>
-        </div>
+        <h1 className='flex min-h-screen w-screen items-center justify-center text-3xl'>
+          Ctrl<span className='text-my-yellow'>+</span>
+        </h1>
       </FadeAnim>
     </Backscreen>
   );
