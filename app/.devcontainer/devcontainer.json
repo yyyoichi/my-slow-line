@@ -5,9 +5,10 @@
   "workspaceFolder": "/workspace/app",
   "customizations": {
     "vscode": {
-      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "bradlc.vscode-tailwindcss"]
     }
   },
   "shutdownAction": "none",
-  "forwardPorts": ["localhost:3000"]
+  "forwardPorts": ["localhost:3000"],
+  "remoteUser": "node"
 }

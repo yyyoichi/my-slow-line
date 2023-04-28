@@ -8,5 +8,6 @@
         "extensions": ["golang.Go"]
       }
     },
-    "shutdownAction": "none"
+    "shutdownAction": "none",
+    "remoteUser": "yyyoichi"
   }

@@ -1,42 +1,42 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"himakiwa/database"
+	"himakiwa/handlers"
+	"himakiwa/middleware"
 	"net/http"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 )
 
+func init() {
+	database.Connect()
+}
+
 func main() {
 	fmt.Println("hello")
 	handler()
 }
+
 func handler() {
 	r := mux.NewRouter()
-	r.HandleFunc("/", Index).Methods("GET")
-	key := []byte("xox-oxo-xox-oxo-xox-oxo-xox-oxo-")
-	http.ListenAndServe(":8000",
-		csrf.Protect(key,
-			csrf.Secure(false),
-			csrf.HttpOnly(false),
-			csrf.TrustedOrigins([]string{"http://localhost:3000"}),
-		)(r))
+	api := r.PathPrefix("/api").Subrouter()
+	api.HandleFunc("/safe", Safe).Methods(http.MethodGet)
+	api.HandleFunc("/signin", handlers.SigninHandler).Methods(http.MethodPost)
+	api.HandleFunc("/login", handlers.LoginHandler).Methods(http.MethodPost)
+	api.HandleFunc("/codein", handlers.VerificateTwoStepCodeHandler).Methods(http.MethodPost)
+	api.Use(middleware.CROSMiddleware)
+	api.Use(middleware.CSRFMiddleware)
+	// need auth
+	auth := api.PathPrefix("/users").Subrouter()
+	auth.HandleFunc("/me", handlers.MeHandler).Methods(http.MethodGet)
+	auth.Use(middleware.AuthMiddleware)
+	http.ListenAndServe(":8080", r)
 }
 
-type Person struct {
-	Name string `json:"name"`
-	Age  int    `json:"age"`
-}
-
-func Index(w http.ResponseWriter, r *http.Request) {
+func Safe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-CSRF-Token", csrf.Token(r))
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	p := Person{"yama", 23}
-	json.NewEncoder(w).Encode(p)
+	w.WriteHeader(http.StatusOK)
 }
