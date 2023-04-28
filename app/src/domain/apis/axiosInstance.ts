@@ -15,3 +15,11 @@ export const tokenizeFetch = async <T>(config: AxiosRequestConfig) => {
   };
   return await instance.request<T>(config);
 };
+
+/**doesnot use csrftoken */
+export const normalFetch = async <T>(config: AxiosRequestConfig) => {
+  const instance = axios.create({
+    baseURL: '/api',
+  });
+  return await instance.request<T>(config);
+};

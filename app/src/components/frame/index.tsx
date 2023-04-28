@@ -9,9 +9,13 @@ export const UiMain = ({ className = '', ...props }: DivProps) => (
   </div>
 );
 
-export const UiHead = (props: React.ComponentProps<'div'>) => (
-  <div className={`flex h-10 w-full`} {...props}>
-    <div className='px-3 py-1 text-2xl'>Ctrl+</div>
+export type UiHeadProps = DivProps;
+export const UiHead = ({ children, className = '', ...props }: UiHeadProps) => (
+  <div className={`flex w-full items-center ${className}`} {...props}>
+    <div className='px-5 py-1 text-4xl'>
+      Ctrl<span className='text-5xl text-my-yellow'>+</span>
+    </div>
+    {children}
   </div>
 );
 

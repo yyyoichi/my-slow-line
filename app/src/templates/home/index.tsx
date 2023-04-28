@@ -1,12 +1,12 @@
-import { UiHead, UiMain } from 'components/frame';
-import Link from 'next/link';
+import { UiMain } from 'components/frame';
 import React from 'react';
+import { Head } from 'components/home';
+import { useHeadProps } from './headProps';
 export default function Home() {
+  const headProps = useHeadProps();
   return (
     <UiMain>
-      <UiHead></UiHead>
-      <Link href={'/login'}>login</Link>
-      <Link href={'/signin'}>signin</Link>
+      <Head {...headProps} />
     </UiMain>
   );
 }

@@ -30,7 +30,7 @@ func handler() {
 	api.Use(middleware.CROSMiddleware)
 	api.Use(middleware.CSRFMiddleware)
 	// need auth
-	auth := r.PathPrefix("/users").Subrouter()
+	auth := api.PathPrefix("/users").Subrouter()
 	auth.HandleFunc("/me", handlers.MeHandler).Methods(http.MethodGet)
 	auth.Use(middleware.AuthMiddleware)
 	http.ListenAndServe(":8080", r)
