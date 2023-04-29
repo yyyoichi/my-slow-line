@@ -1,8 +1,8 @@
 package database
 
 import (
-	"reflect"
 	"testing"
+	"time"
 )
 
 type mock struct {
@@ -56,6 +56,30 @@ func testNotNil(t *testing.T, u *TUser) {
 		t.Error("LoginAt is zero")
 	}
 }
+
+func deepEqual(t *testing.T, act, exp *TUser) {
+	if act.Id != exp.Id {
+		t.Errorf("expected Id is %d but got='%d'", exp.Id, act.Id)
+	}
+	if act.Name != exp.Name {
+		t.Errorf("expected Name is %s but got='%s'", exp.Name, act.Name)
+	}
+	if act.Email != exp.Email {
+		t.Errorf("expected Email is %s but got='%s'", exp.Email, act.Email)
+	}
+	if act.HashedPass != exp.HashedPass {
+		t.Errorf("expected HashedPass is %s but got='%s'", exp.HashedPass, act.HashedPass)
+	}
+	if act.VCode != exp.VCode {
+		t.Errorf("expected VCode is %s but got='%s'", exp.VCode, act.VCode)
+	}
+	if act.Deleted != exp.Deleted {
+		t.Errorf("expected Deleted is %v but got='%v'", exp.Deleted, act.Deleted)
+	}
+	if act.TwoVerificated != exp.TwoVerificated {
+		t.Errorf("expected TwoVerificated is %v but got='%v'", exp.TwoVerificated, act.TwoVerificated)
+	}
+}
 func TestQuery(t *testing.T) {
 	db, err := GetDatabase()
 	if err != nil {
@@ -77,9 +101,7 @@ func TestQuery(t *testing.T) {
 	}
 	testNotNil(t, qu)
 
-	if reflect.DeepEqual(tu, qu) {
-		t.Errorf("expected is %v but got='%v' ", tu, qu)
-	}
+	deepEqual(t, qu, tu)
 
 	qu, err = usersR.QueryByEMail(tu.Email)
 	if err != nil {
@@ -87,9 +109,7 @@ func TestQuery(t *testing.T) {
 	}
 	testNotNil(t, qu)
 
-	if reflect.DeepEqual(tu, qu) {
-		t.Errorf("expected is %v but got='%v' ", tu, qu)
-	}
+	deepEqual(t, qu, tu)
 }
 
 func TestSoftDelete(t *testing.T) {
@@ -150,7 +170,7 @@ func TestUpdateCode(t *testing.T) {
 
 	newCode := "123456"
 
-	if err := usersR.UpdateLoginTimeAndResetVCode(tu.Id, newCode); err != nil {
+	if err := usersR.UpdateLoginTimeAndResetVCode(tu.Id, newCode, time.Now()); err != nil {
 		t.Error(err)
 	}
 
@@ -169,6 +189,19 @@ func TestUpdateCode(t *testing.T) {
 
 	if qu.TwoVerificated {
 		t.Errorf("expected is false but got='true'")
+	}
+
+	if err := usersR.UpdateVerifiscatedAt(tu.Id, time.Now()); err != nil {
+		t.Error(err)
+	}
+
+	qu, err = usersR.QueryById(tu.Id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !qu.TwoVerificated {
+		t.Errorf("expected is true but got='false'")
 	}
 
 }

@@ -136,11 +136,21 @@ func (u *UserRepository) HardDeleteById(userId int) error {
 	return nil
 }
 
-func (u *UserRepository) UpdateLoginTimeAndResetVCode(userId int, vcode string) error {
+func (u *UserRepository) UpdateLoginTimeAndResetVCode(userId int, vcode string, now time.Time) error {
 	// update db
-	now := time.Now()
 	s := `UPDATE users SET two_step_verification_code = ?, two_verificated = 0, login_at = ? WHERE id = ?`
 	_, err := u.db.Exec(s, vcode, now, userId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (u *UserRepository) UpdateVerifiscatedAt(userId int, now time.Time) error {
+	// update db
+	s := `UPDATE users SET two_verificated = 1, two_verificated_at = ? WHERE id = ?`
+	_, err := u.db.Exec(s, now, userId)
 	if err != nil {
 		return err
 	}
