@@ -1,4 +1,4 @@
-package auth
+package users
 
 import (
 	"crypto/rand"
@@ -24,7 +24,7 @@ type hashParams struct {
 	keyLength   uint32
 }
 
-// 安全なランダムなソルトを生成する関数
+// Function to generate safe random salt
 func generateRandomBytes(length uint32) ([]byte, error) {
 	salt := make([]byte, length)
 	if _, err := rand.Read(salt); err != nil {
@@ -33,8 +33,8 @@ func generateRandomBytes(length uint32) ([]byte, error) {
 	return salt, nil
 }
 
-// ソルトを用いてパスワードをストレッチングする関数
-func HashPassword(password string) (string, error) {
+// Function for stretching passwords with salt
+func hashPassword(password string) (string, error) {
 	p := &hashParams{
 		memory:      64 * 1024,
 		iterations:  3,
@@ -59,8 +59,8 @@ func HashPassword(password string) (string, error) {
 	return encodedHash, nil
 }
 
-// 平文でのパスワードとエンコードされたハッシュ値を比較検証する関数
-func ComparePasswordAndHash(password, encodedHash string) (match bool, err error) {
+// Function to compare and verify plaintext passwords and encoded hash values
+func comparePasswordAndHash(password, encodedHash string) (match bool, err error) {
 	// Extract the parameters, salt and derived key from the encoded password
 	// hash.
 	p, salt, hash, err := decodeHash(encodedHash)

@@ -1,4 +1,4 @@
-package auth
+package users
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestTwoVerification(t *testing.T) {
-	input := GenerateRandomSixNumber()
+	input := generateRandomSixNumber()
 	test := []struct {
 		code string
 		add  time.Duration
@@ -29,24 +29,24 @@ func TestTwoVerification(t *testing.T) {
 			exp:  false,
 		},
 		{ // abnormal
-			code: GenerateRandomSixNumber(),
+			code: generateRandomSixNumber(),
 			add:  -time.Minute * 9,
 			exp:  false,
 		},
 		{ // abnormal
-			code: GenerateRandomSixNumber(),
+			code: generateRandomSixNumber(),
 			add:  -time.Second * 601,
 			exp:  false,
 		},
 		{ // abnormal
-			code: GenerateRandomSixNumber(),
+			code: generateRandomSixNumber(),
 			add:  time.Second * 1,
 			exp:  false,
 		},
 	}
 	for i, tt := range test {
 		loginAt := time.Now().Add(tt.add)
-		result := VerificateSixNumber(input, tt.code, loginAt)
+		result := verificateSixNumber(input, tt.code, loginAt)
 		if result != tt.exp {
 			t.Errorf("%d: expected '%v' but got='%v' code is '%s' loginAt is before '%v'", i, tt.exp, result, tt.code, tt.add)
 		}
