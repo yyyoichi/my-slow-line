@@ -1,4 +1,4 @@
-package utils
+package email
 
 import (
 	"fmt"
@@ -6,13 +6,13 @@ import (
 	"os"
 )
 
-type Email struct {
+type build struct {
 	To      string
 	Subject string
 	Message string
 }
 
-func (e *Email) Send() error {
+func (b *build) send() error {
 	from := os.Getenv("EMAIL_ADDRESS")
 	password := os.Getenv("APP_PASSWORD")
 	smtphost := os.Getenv("SMTP_HOST")
@@ -27,13 +27,13 @@ func (e *Email) Send() error {
 		smtphost,
 	)
 
-	body := fmt.Sprintf("TO: %s\r\nSubject: %s\r\n\n\n%s", e.To, e.Subject, e.Message)
+	body := fmt.Sprintf("TO: %s\r\nSubject: %s\r\n\n\n%s", b.To, b.Subject, b.Message)
 
 	return smtp.SendMail(
 		smtporigin,
 		auth,
 		from,
-		[]string{e.To},
+		[]string{b.To},
 		[]byte(body),
 	)
 }

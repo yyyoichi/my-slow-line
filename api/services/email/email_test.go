@@ -1,4 +1,4 @@
-package auth
+package email
 
 import (
 	"os"
@@ -8,7 +8,7 @@ import (
 func TestSendCode(t *testing.T) {
 	email := os.Getenv("EMAIL_ADDRESS")
 	code := "000000"
-	if err := SendCode(email, code); err != nil {
+	if err := NewEmailServices().SendVCode(email, code); err != nil {
 		t.Error(err)
 	}
 }
