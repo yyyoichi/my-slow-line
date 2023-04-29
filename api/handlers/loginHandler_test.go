@@ -3,8 +3,8 @@ package handlers
 import (
 	"bytes"
 	"fmt"
-	"himakiwa/database"
 	"himakiwa/middleware"
+	"himakiwa/services/database"
 	"net/http"
 	"net/http/httptest"
 	"testing"

@@ -1,11 +1,11 @@
-package auth
+package users
 
 import (
 	"math/rand"
 	"time"
 )
 
-func GenerateRandomSixNumber() string {
+func generateRandomSixNumber() string {
 	rand.Seed(time.Now().UnixNano())
 	numbers := []byte("0123456789")
 	result := make([]byte, 6)
@@ -16,7 +16,7 @@ func GenerateRandomSixNumber() string {
 }
 
 // verification is success when a [in] code from user form match [code] from db and [loginAt] time is within 10min.
-func VerificateSixNumber(in, code string, loginAt time.Time) bool {
+func verificateSixNumber(in, code string, loginAt time.Time) bool {
 	if in != code {
 		return false
 	}

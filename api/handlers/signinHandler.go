@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"himakiwa/auth"
-	"himakiwa/database"
 	"himakiwa/handlers/decode"
+	"himakiwa/services/database"
 	"net/http"
 )
 
