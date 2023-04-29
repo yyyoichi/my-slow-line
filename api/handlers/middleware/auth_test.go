@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"fmt"
-	"himakiwa/auth"
-	"himakiwa/utils"
+	jwttoken "himakiwa/handlers/jwt"
+	"himakiwa/handlers/utils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,7 +30,7 @@ func TestMiddleAuth(t *testing.T) {
 
 	secret := "hogehoge"
 	userId := "userABC"
-	token, err := auth.NewJwt(secret).Generate(userId)
+	token, err := jwttoken.NewJwt(secret).Generate(userId)
 	if err != nil {
 		t.Errorf("got error='%s'", err)
 	}

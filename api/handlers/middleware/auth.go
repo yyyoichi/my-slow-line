@@ -1,18 +1,18 @@
 package middleware
 
 import (
-	"himakiwa/auth"
-	"himakiwa/utils"
+	jwttoken "himakiwa/handlers/jwt"
+	"himakiwa/handlers/utils"
 	"net/http"
 	"os"
 )
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := utils.ReadJWTCookie(r)
+		reqToken := utils.ReadJWTCookie(r)
 		secret := os.Getenv("JWT_SECRET")
-		jt := auth.NewJwt(secret)
-		rc, err := jt.ParseToken(token)
+		jt := jwttoken.NewJwt(secret)
+		rc, err := jt.ParseToken(reqToken)
 		if err != nil {
 			http.Error(w, "auth error", http.StatusBadRequest)
 			return

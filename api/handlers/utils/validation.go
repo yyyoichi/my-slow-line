@@ -1,4 +1,4 @@
-package decode
+package utils
 
 import (
 	"errors"
