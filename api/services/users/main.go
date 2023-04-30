@@ -16,13 +16,7 @@ var (
 	ErrUnexpected      = errors.New("unexpected errors occuered")
 )
 
-type UsersService struct {
-	db *sql.DB
-}
-
-func NewUsersService(db *sql.DB) *UsersService {
-	return &UsersService{db}
-}
+type UsersService struct{}
 
 func (u *UsersService) Signin(email, pass, name string) (*database.TUser, error) {
 	// validation
@@ -38,7 +32,7 @@ func (u *UsersService) Signin(email, pass, name string) (*database.TUser, error)
 	// create verification code
 	vcode := generateRandomSixNumber()
 
-	users := database.GetUsers(u.db)
+	users := &database.UserRepository{}
 
 	tu, err := users.Create(name, email, hashedPass, vcode)
 	if err == nil {
@@ -64,7 +58,7 @@ func (u *UsersService) Login(email, pass string) (*database.TUser, error) {
 		return nil, ErrInValidParams
 	}
 
-	users := database.GetUsers(u.db)
+	users := &database.UserRepository{}
 
 	tu, err := users.QueryByEMail(email)
 	if err != nil {
@@ -99,7 +93,7 @@ func (u *UsersService) Verificate(userId int, vcode string) (*database.TUser, er
 	if userId == 0 || vcode == "" || len(vcode) != 6 {
 		return nil, ErrInValidParams
 	}
-	users := database.GetUsers(u.db)
+	users := &database.UserRepository{}
 
 	tu, err := users.QueryById(userId)
 	if err != nil {
@@ -126,7 +120,7 @@ func (u *UsersService) Query(userId int) (*database.TUser, error) {
 		return nil, ErrInValidParams
 	}
 
-	users := database.GetUsers(u.db)
+	users := &database.UserRepository{}
 	tu, err := users.QueryById(userId)
 
 	if err != nil {
@@ -141,7 +135,7 @@ func (u *UsersService) HardDelete(userId int) error {
 		return ErrInValidParams
 	}
 
-	users := database.GetUsers(u.db)
+	users := &database.UserRepository{}
 	return users.HardDeleteById(userId)
 }
 
@@ -150,6 +144,6 @@ func (u *UsersService) SoftDelete(userId int) error {
 		return ErrInValidParams
 	}
 
-	users := database.GetUsers(u.db)
+	users := &database.UserRepository{}
 	return users.SoftDeleteById(userId)
 }

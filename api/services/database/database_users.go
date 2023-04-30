@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"log"
 	"time"
 )
 
@@ -23,23 +22,13 @@ type TUser struct {
 	dbTwoVerificated int64
 }
 
-type UserRepository struct {
-	db *sql.DB
-}
-
-func GetUsers(db *sql.DB) *UserRepository {
-	return &UserRepository{db}
-}
+type UserRepository struct{}
 
 func (u *UserRepository) Create(name, email, hashedPass, vcode string) (*TUser, error) {
-	if u.db == nil {
-		log.Fatal("error db")
-	}
-
 	// exec insert
 	s := `INSERT INTO users (name, email, password, create_at, login_at, update_at, two_step_verification_code) VALUES(?, ?, ?, ?, ?, ?, ?)`
 	now := time.Now()
-	result, err := u.db.Exec(s, name, email, hashedPass, now, now, now, vcode)
+	result, err := DB.Exec(s, name, email, hashedPass, now, now, now, vcode)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +61,7 @@ func (u *UserRepository) QueryById(userId int) (*TUser, error) {
 	s := `SELECT name, email, password, login_at, create_at, update_at, deleted,
 					two_step_verification_code, two_verificated_at, two_verificated
 				FROM users WHERE id = ?`
-	row := u.db.QueryRow(s, userId)
+	row := DB.QueryRow(s, userId)
 	err := row.Scan(&tu.Name, &tu.Email, &tu.HashedPass, &tu.LoginAt, &tu.CreateAt, &tu.UpdateAt, &tu.dbDeleted,
 		&tu.VCode, &tu.TwoVerificatedAt, &tu.dbTwoVerificated,
 	)
@@ -92,7 +81,7 @@ func (u *UserRepository) QueryByEMail(email string) (*TUser, error) {
 	s := `SELECT id, name, email, password, login_at, create_at, update_at, deleted,
 					two_step_verification_code, two_verificated_at, two_verificated
 	 			FROM users WHERE email = ?`
-	row := u.db.QueryRow(s, email)
+	row := DB.QueryRow(s, email)
 	err := row.Scan(&tu.Id, &tu.Name, &tu.Email, &tu.HashedPass, &tu.LoginAt, &tu.CreateAt, &tu.UpdateAt, &tu.dbDeleted,
 		&tu.VCode, &tu.TwoVerificatedAt, &tu.dbTwoVerificated,
 	)
@@ -109,7 +98,7 @@ func (u *UserRepository) QueryByEMail(email string) (*TUser, error) {
 // deleted flag on
 func (u *UserRepository) SoftDeleteById(userId int) error {
 	s := `UPDATE users SET deleted=1 WHERE id = ?`
-	_, err := u.db.Exec(s, userId)
+	_, err := DB.Exec(s, userId)
 	if err != nil {
 		return err
 	}
@@ -118,7 +107,7 @@ func (u *UserRepository) SoftDeleteById(userId int) error {
 
 func (u *UserRepository) ActivateById(userId int) error {
 	s := `UPDATE users SET deleted=0 WHERE id = ?`
-	_, err := u.db.Exec(s, userId)
+	_, err := DB.Exec(s, userId)
 	if err != nil {
 		return err
 	}
@@ -129,7 +118,7 @@ func (u *UserRepository) ActivateById(userId int) error {
 func (u *UserRepository) HardDeleteById(userId int) error {
 	// exec delete row
 	s := `DELETE FROM users WHERE id = ?`
-	_, err := u.db.Exec(s, userId)
+	_, err := DB.Exec(s, userId)
 	if err != nil {
 		return err
 	}
@@ -139,7 +128,7 @@ func (u *UserRepository) HardDeleteById(userId int) error {
 func (u *UserRepository) UpdateLoginTimeAndResetVCode(userId int, vcode string, now time.Time) error {
 	// update db
 	s := `UPDATE users SET two_step_verification_code = ?, two_verificated = 0, login_at = ? WHERE id = ?`
-	_, err := u.db.Exec(s, vcode, now, userId)
+	_, err := DB.Exec(s, vcode, now, userId)
 	if err != nil {
 		return err
 	}
@@ -150,7 +139,7 @@ func (u *UserRepository) UpdateLoginTimeAndResetVCode(userId int, vcode string, 
 func (u *UserRepository) UpdateVerifiscatedAt(userId int, now time.Time) error {
 	// update db
 	s := `UPDATE users SET two_verificated = 1, two_verificated_at = ? WHERE id = ?`
-	_, err := u.db.Exec(s, now, userId)
+	_, err := DB.Exec(s, now, userId)
 	if err != nil {
 		return err
 	}

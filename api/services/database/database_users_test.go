@@ -12,6 +12,10 @@ type mock struct {
 	vcode string
 }
 
+func init() {
+	Connect()
+}
+
 func createMockUser() *mock {
 	return &mock{"sample", "test@example.com", "pa55word", "098123"}
 }
@@ -81,13 +85,8 @@ func deepEqual(t *testing.T, act, exp *TUser) {
 	}
 }
 func TestQuery(t *testing.T) {
-	db, err := GetDatabase()
-	if err != nil {
-		t.Error(err)
-	}
-	defer db.Close()
 
-	usersR := GetUsers(db)
+	usersR := &UserRepository{}
 
 	m := createMockUser()
 	tu, close := userMock(t, usersR, m)
@@ -113,20 +112,15 @@ func TestQuery(t *testing.T) {
 }
 
 func TestSoftDelete(t *testing.T) {
-	db, err := GetDatabase()
-	if err != nil {
-		t.Error(err)
-	}
-	defer db.Close()
 
-	usersR := GetUsers(db)
+	usersR := &UserRepository{}
 
 	m := createMockUser()
 	tu, close := userMock(t, usersR, m)
 	defer close()
 	testNotNil(t, tu)
 
-	if err = usersR.SoftDeleteById(tu.Id); err != nil {
+	if err := usersR.SoftDeleteById(tu.Id); err != nil {
 		t.Error(err)
 	}
 
@@ -156,13 +150,8 @@ func TestSoftDelete(t *testing.T) {
 }
 
 func TestUpdateCode(t *testing.T) {
-	db, err := GetDatabase()
-	if err != nil {
-		t.Error(err)
-	}
-	defer db.Close()
 
-	usersR := GetUsers(db)
+	usersR := &UserRepository{}
 
 	m := createMockUser()
 	tu, close := userMock(t, usersR, m)

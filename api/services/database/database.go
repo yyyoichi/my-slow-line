@@ -12,7 +12,8 @@ import (
 var DB *sql.DB
 
 func Connect() {
-	DB, err := GetDatabase()
+	var err error
+	DB, err = GetDatabase()
 	if err != nil || DB.Ping() != nil {
 		log.Panic(err, DB.Ping())
 	}

@@ -1,9 +1,15 @@
-package users
+package services_test
 
 import (
+	"himakiwa/services"
 	"himakiwa/services/database"
+	"himakiwa/services/users"
 	"testing"
 )
+
+func init() {
+	database.Connect()
+}
 
 type mock struct {
 	name  string
@@ -11,7 +17,7 @@ type mock struct {
 	pass  string
 }
 
-func testMock(t *testing.T, u *UsersService, m *mock) (*database.TUser, func()) {
+func testMock(t *testing.T, u users.UsersService, m *mock) (*database.TUser, func()) {
 	tu, err := u.Signin(m.email, m.pass, m.name)
 	if err != nil {
 		t.Error(err)
@@ -32,7 +38,8 @@ func TestQuery(t *testing.T) {
 	}
 	defer db.Close()
 
-	u := NewUsersService(db)
+	u := services.NewRepositoryServices().GetUser()
+
 	tu, close := testMock(t, u, m)
 	defer close()
 
@@ -55,7 +62,8 @@ func TestLogin(t *testing.T) {
 	}
 	defer db.Close()
 
-	u := NewUsersService(db)
+	u := services.NewRepositoryServices().GetUser()
+
 	tu, close := testMock(t, u, m)
 	defer close()
 
@@ -72,27 +80,27 @@ func TestLogin(t *testing.T) {
 		{
 			email: "",
 			pass:  m.pass,
-			err:   ErrInValidParams,
+			err:   users.ErrInValidParams,
 		},
 		{
 			email: m.email,
 			pass:  "",
-			err:   ErrInValidParams,
+			err:   users.ErrInValidParams,
 		},
 		{
 			email: "demo@demo",
 			pass:  m.pass,
-			err:   ErrInvalidEmail,
+			err:   users.ErrInvalidEmail,
 		},
 		{
 			email: m.email,
 			pass:  "buzzword",
-			err:   ErrInvalidPassword,
+			err:   users.ErrInvalidPassword,
 		},
 		{
 			email: m.email,
 			pass:  "ppp",
-			err:   ErrInvalidPassword,
+			err:   users.ErrInvalidPassword,
 		},
 	}
 
@@ -124,7 +132,8 @@ func TestVerificate(t *testing.T) {
 	}
 	defer db.Close()
 
-	u := NewUsersService(db)
+	u := services.NewRepositoryServices().GetUser()
+
 	tu, close := testMock(t, u, m)
 	defer close()
 
@@ -138,15 +147,15 @@ func TestVerificate(t *testing.T) {
 		},
 		{
 			vcode: "",
-			err:   ErrInValidParams,
+			err:   users.ErrInValidParams,
 		},
 		{
 			vcode: "12345",
-			err:   ErrInValidParams,
+			err:   users.ErrInValidParams,
 		},
 		{
 			vcode: "123456",
-			err:   ErrInvalidVCode,
+			err:   users.ErrInvalidVCode,
 		},
 	}
 	for i, tt := range test {

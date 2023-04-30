@@ -1,16 +1,19 @@
 package services
 
 import (
-	"database/sql"
 	"himakiwa/services/users"
 )
 
 type RepositoryServices struct {
-	Users *users.UsersService
+	users users.UsersService
 }
 
-func NewServices(db *sql.DB) *RepositoryServices {
+func NewRepositoryServices() *RepositoryServices {
 	return &RepositoryServices{
-		Users: users.NewUsersService(db),
+		users: users.UsersService{},
 	}
+}
+
+func (s *RepositoryServices) GetUser() users.UsersService {
+	return s.users
 }
