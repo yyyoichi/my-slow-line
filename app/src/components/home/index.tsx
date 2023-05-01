@@ -1,22 +1,36 @@
 import Link from 'next/link';
 import React from 'react';
 import { UiHead } from '../frame';
+import { DivProps } from 'components/atoms/type';
+import { NonNullablePick } from 'components';
 
 export type HeadProps = {
   isLogined: boolean;
-  account: UserProps;
+  user: UserProps;
 };
 export const Head = (props: HeadProps) => {
-  return <UiHead>{props.isLogined ? <User name={props.account.name} /> : <Guest />}</UiHead>;
+  return <UiHead>{props.isLogined ? <User {...props.user} /> : <Guest />}</UiHead>;
 };
 
 type UserProps = {
-  name: string;
+  icon: NonNullablePick<DivProps, 'children'>;
+  logout: NonNullablePick<DivProps, 'onClick'>;
 };
-const User = ({ name }: UserProps) => {
+const User = ({ icon, logout }: UserProps) => {
+  const logoutProps: DivProps = {
+    ...logout,
+    className: 'mx-2 inline-block rounded border-2 border-my-white px-3 py-1',
+    children: 'logout',
+  };
+  const iconProps: DivProps = {
+    ...icon,
+    className:
+      'flex aspect-square w-10 items-center justify-center rounded-full bg-my-white p-1 pb-2 text-xl font-bold text-my-black',
+  };
   return (
-    <div className='ml-auto mr-4 flex aspect-square w-10 items-center justify-center rounded-full bg-my-white p-1 pb-2 text-xl font-bold text-my-black'>
-      {name[0]}
+    <div className='ml-auto flex gap-4'>
+      <div {...logoutProps} />
+      <div {...iconProps} />
     </div>
   );
 };

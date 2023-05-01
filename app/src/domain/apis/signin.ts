@@ -1,7 +1,11 @@
 import { AxiosRequestConfig } from 'axios';
 import { ErrorUnExpectedResponse, tokenizeFetch } from './axiosInstance';
 
-/**@return {number} userId */
+type BasicResp = {
+  jwt: string;
+};
+
+/**@return {string} jwt */
 export const postSignin = async (email: string, password: string, name = '') => {
   const config: AxiosRequestConfig = {
     data: {
@@ -13,9 +17,9 @@ export const postSignin = async (email: string, password: string, name = '') => 
     url: 'signin',
   };
   try {
-    const res = await tokenizeFetch<number>(config);
+    const res = await tokenizeFetch<BasicResp>(config);
     if (res.status === 200) {
-      return res.data;
+      return res.data.jwt;
     }
     throw new Error(ErrorUnExpectedResponse);
   } catch (e) {
@@ -23,7 +27,7 @@ export const postSignin = async (email: string, password: string, name = '') => 
   }
 };
 
-/**@return {number} userId */
+/**@return {string} jwt */
 export const postLogin = async (email: string, password: string) => {
   const config: AxiosRequestConfig = {
     data: {
@@ -34,9 +38,9 @@ export const postLogin = async (email: string, password: string) => {
     url: 'login',
   };
   try {
-    const res = await tokenizeFetch<number>(config);
+    const res = await tokenizeFetch<BasicResp>(config);
     if (res.status === 200) {
-      return res.data;
+      return res.data.jwt;
     }
     if (res.status === 400) {
       throw new Error('Could not login. Please check your email and password.');
@@ -47,11 +51,27 @@ export const postLogin = async (email: string, password: string) => {
   }
 };
 
-/**@param id userID */
-export const postVerificateCode = async (id: number, code: string) => {
+export const postLogout = async () => {
+  const config: AxiosRequestConfig = {
+    data: {},
+    method: 'POST',
+    url: 'me/logout',
+  };
+  try {
+    const res = await tokenizeFetch<null>(config);
+    if (res.status === 200) {
+      return true;
+    }
+    throw new Error(ErrorUnExpectedResponse);
+  } catch (e) {
+    throw e;
+  }
+};
+
+export const postVerificateCode = async (jwt: string, code: string) => {
   const config: AxiosRequestConfig = {
     data: {
-      id,
+      jwt,
       code,
     },
     method: 'POST',

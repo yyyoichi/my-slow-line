@@ -135,9 +135,9 @@ export function useSigninFormsProps() {
           // checked form input.
 
           postSignin(email, password, basicState.name)
-            .then((userId) => {
-              if (!userId) throw new Error();
-              codeState.setUserId(userId);
+            .then((jwt) => {
+              if (!jwt) throw new Error();
+              codeState.setJwt(jwt);
               page.goToNextPage();
             })
             .catch(() => {
@@ -176,7 +176,7 @@ export function useSigninFormsProps() {
 
           // checked form input.
 
-          postVerificateCode(codeState.userId, codeState.code)
+          postVerificateCode(codeState.jwt, codeState.code)
             .then(() => ac.pullMyAccount())
             .catch(() => {
               alert('Sorry, occurs unexpected errors. Please try agin.');
