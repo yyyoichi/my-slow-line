@@ -31,10 +31,10 @@ func handler() {
 	api.HandleFunc("/codein", ah.VerificateHandler).Methods(http.MethodPost)
 	api.Use(middleware.CROSMiddleware)
 	api.Use(middleware.CSRFMiddleware)
-	// need auth
-	auth := api.PathPrefix("/users").Subrouter()
-	auth.HandleFunc("/me", handlers.MeHandler).Methods(http.MethodGet)
-	auth.Use(middleware.AuthMiddleware)
+
+	me := api.PathPrefix("/me").Subrouter()
+	me.HandleFunc("/", handlers.MeHandler).Methods(http.MethodGet)
+	me.Use(middleware.AuthMiddleware)
 	http.ListenAndServe(":8080", r)
 }
 

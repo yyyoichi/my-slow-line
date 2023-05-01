@@ -29,7 +29,7 @@ type AutenticatehHandlers struct {
 }
 
 type BasicResp struct {
-	Jwt string
+	Jwt string `json:"jwt"`
 }
 
 type LogininBody struct {
