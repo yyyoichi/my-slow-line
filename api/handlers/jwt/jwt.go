@@ -16,6 +16,10 @@ func NewJwt(secret string) *JwtToken {
 	return &JwtToken{secret: secret, start: time.Now()}
 }
 
+func New10minJwt(secret string) *JwtToken {
+	return &JwtToken{secret: secret, start: time.Now().AddDate(0, 0, -7).Add(10 * time.Minute)}
+}
+
 func (jt *JwtToken) Generate(userId string) (string, error) {
 	rc := &jwt.RegisteredClaims{}
 	rc.ExpiresAt = jwt.NewNumericDate(jt.start.AddDate(0, 0, 7))

@@ -1,15 +1,9 @@
 package utils
 
 import (
-	"errors"
 	"regexp"
 
 	"github.com/go-playground/validator/v10"
-)
-
-var (
-	errInvalidBodyProperty = errors.New("invalid body property")
-	errInvalidBody         = errors.New("invalid body")
 )
 
 func newValidation() *validator.Validate {

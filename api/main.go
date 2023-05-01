@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"himakiwa/handlers"
-	"himakiwa/middleware"
+	"himakiwa/handlers/middleware"
 	"himakiwa/services/database"
 	"net/http"
 
@@ -24,9 +24,11 @@ func handler() {
 	r := mux.NewRouter()
 	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/safe", Safe).Methods(http.MethodGet)
-	api.HandleFunc("/signin", handlers.SigninHandler).Methods(http.MethodPost)
-	api.HandleFunc("/login", handlers.LoginHandler).Methods(http.MethodPost)
-	api.HandleFunc("/codein", handlers.VerificateTwoStepCodeHandler).Methods(http.MethodPost)
+
+	ah := handlers.NewAutenticateHandlers()
+	api.HandleFunc("/signin", ah.SigninHandler).Methods(http.MethodPost)
+	api.HandleFunc("/login", ah.LoginHandler).Methods(http.MethodPost)
+	api.HandleFunc("/codein", ah.VerificateHandler).Methods(http.MethodPost)
 	api.Use(middleware.CROSMiddleware)
 	api.Use(middleware.CSRFMiddleware)
 	// need auth
