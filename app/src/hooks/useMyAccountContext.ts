@@ -5,6 +5,7 @@ export type MyAccountContextType = ReturnType<typeof useMyAccountState>;
 const initContext: ReturnType<typeof useMyAccountState> = {
   myAccount: new MyAccount(),
   pullMyAccount: async () => undefined,
+  clearMyAccount: () => undefined,
   isUpdated: false,
   initialized: false,
 };
@@ -26,6 +27,8 @@ export const useMyAccountState = () => {
     }
   };
 
+  const clearMyAccount = () => setState(new MyAccount());
+
   // init at first
   React.useEffect(() => {
     setTimeout(async () => {
@@ -37,6 +40,7 @@ export const useMyAccountState = () => {
   return {
     myAccount: state,
     pullMyAccount,
+    clearMyAccount,
     isUpdated,
     initialized,
   };
