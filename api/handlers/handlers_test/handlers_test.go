@@ -4,30 +4,57 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"himakiwa/handlers/middleware"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
-	"time"
 )
 
 type HttpMock struct {
+	client http.Client
 	server *httptest.Server
+}
+
+func NewReqAuthHttpMock(handler http.HandlerFunc, jwt string) *HttpMock {
+	h := middleware.AuthMiddleware(handler)
+	server := httptest.NewServer(h)
+
+	url, _ := url.Parse(server.URL)
+	jar, _ := cookiejar.New(nil)
+	jwtCookie := &http.Cookie{Name: "token", Value: jwt}
+	jar.SetCookies(url, []*http.Cookie{jwtCookie})
+	client := http.Client{Jar: jar}
+	return &HttpMock{client, server}
 }
 
 func NewHttpMock(handler http.HandlerFunc) *HttpMock {
 	server := httptest.NewServer(http.HandlerFunc(handler))
-	time.Sleep(1 * time.Second)
-	return &HttpMock{server}
+	client := http.Client{}
+	return &HttpMock{client, server}
 }
 
-func (h *HttpMock) Post(t *testing.T, body string) Resp {
-	resp, err := http.Post(h.server.URL, "application/json; charset=UTF-8", bytes.NewBufferString(body))
+func (h *HttpMock) do(t *testing.T, method string, body io.Reader) Resp {
+	req, err := http.NewRequest(method, h.server.URL, body)
+	if err != nil {
+		t.Error(err)
+	}
+	resp, err := h.client.Do(req)
 	if err != nil {
 		t.Error(err)
 	}
 	return NewResp(resp)
+}
+
+func (h *HttpMock) Get(t *testing.T) Resp {
+	return h.do(t, "GET", nil)
+}
+
+func (h *HttpMock) Post(t *testing.T, body string) Resp {
+	return h.do(t, "POST", bytes.NewBufferString(body))
 }
 
 func (h *HttpMock) Close() {
