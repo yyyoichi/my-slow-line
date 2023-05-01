@@ -13,7 +13,7 @@ type Me = {
 export const getMe = async () => {
   const config: AxiosRequestConfig = {
     method: 'GET',
-    url: '/users/me',
+    url: '/me/',
   };
   let me: MyAccount;
   try {

@@ -1,22 +1,22 @@
 import React from 'react';
 
 type CodesState = {
-  userId: number;
+  jwt: string;
   code: string;
 };
 
 export const useVerificationCodeState = () => {
   const [state, setState] = React.useState<CodesState>({
-    userId: 0,
+    jwt: '',
     code: '',
   });
-  const setUserId = (userId: CodesState['userId']) => setState((ps) => ({ ...ps, userId }));
+  const setJwt = (jwt: CodesState['jwt']) => setState((ps) => ({ ...ps, jwt }));
   const setCode = (code: CodesState['code']) => setState((ps) => ({ ...ps, code }));
 
   return {
     code: state.code,
-    userId: state.userId,
-    setUserId,
+    jwt: state.jwt,
+    setJwt,
     setCode,
   };
 };

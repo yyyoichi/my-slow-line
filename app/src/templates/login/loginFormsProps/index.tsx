@@ -80,9 +80,9 @@ export function useLoginFormsProps() {
           // checked from input.
 
           postLogin(basicState.email, basicState.password)
-            .then((userId) => {
-              if (!userId) throw new Error();
-              codeState.setUserId(userId);
+            .then((jwt) => {
+              if (!jwt) throw new Error();
+              codeState.setJwt(jwt);
               page.goToNextPage();
             })
             .catch(() => {
@@ -121,7 +121,7 @@ export function useLoginFormsProps() {
 
           // checked form input.
 
-          postVerificateCode(codeState.userId, codeState.code)
+          postVerificateCode(codeState.jwt, codeState.code)
             .then(() => ac.pullMyAccount())
             .catch(() => {
               alert('Sorry, occurs unexpected errors. Please try agin.');
