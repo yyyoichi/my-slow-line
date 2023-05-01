@@ -34,6 +34,7 @@ func handler() {
 
 	me := api.PathPrefix("/me").Subrouter()
 	me.HandleFunc("/", handlers.MeHandler).Methods(http.MethodGet)
+	me.HandleFunc("/logout", handlers.LogoutHandler).Methods(http.MethodPost)
 	me.Use(middleware.AuthMiddleware)
 	http.ListenAndServe(":8080", r)
 }

@@ -51,7 +51,23 @@ export const postLogin = async (email: string, password: string) => {
   }
 };
 
-/**@param jwt jwt */
+export const postLogout = async () => {
+  const config: AxiosRequestConfig = {
+    data: {},
+    method: 'POST',
+    url: 'me/logout',
+  };
+  try {
+    const res = await tokenizeFetch<null>(config);
+    if (res.status === 200) {
+      return true;
+    }
+    throw new Error(ErrorUnExpectedResponse);
+  } catch (e) {
+    throw e;
+  }
+};
+
 export const postVerificateCode = async (jwt: string, code: string) => {
   const config: AxiosRequestConfig = {
     data: {

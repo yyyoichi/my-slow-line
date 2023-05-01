@@ -33,3 +33,9 @@ func SetJWTCookie(w http.ResponseWriter, token string) {
 func ReadJWTCookie(r *http.Request) string {
 	return read(r, "token")
 }
+
+func DeleteJWTCookie(w http.ResponseWriter) {
+	c := newCookie("token", "")
+	c.Expires = time.Unix(0, 0)
+	http.SetCookie(w, c)
+}
