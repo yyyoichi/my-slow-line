@@ -23,6 +23,11 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	utils.DeleteJWTCookie(w)
+	w.WriteHeader(http.StatusOK)
+}
+
 type GetMeResp struct {
 	Id             int       `json:"id"`
 	Name           string    `json:"name"`
