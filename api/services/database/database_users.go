@@ -125,6 +125,17 @@ func (u *UserRepository) HardDeleteById(userId int) error {
 	return nil
 }
 
+// Delete row.
+func (u *UserRepository) HardDeleteByEmail(email string) error {
+	// exec delete row
+	s := `DELETE FROM users WHERE email = ?`
+	_, err := DB.Exec(s, email)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (u *UserRepository) UpdateLoginTimeAndResetVCode(userId int, vcode string, now time.Time) error {
 	// update db
 	s := `UPDATE users SET two_step_verification_code = ?, two_verificated = 0, login_at = ? WHERE id = ?`
