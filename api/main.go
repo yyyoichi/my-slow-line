@@ -36,6 +36,10 @@ func handler() {
 	me.HandleFunc("/", handlers.MeHandler).Methods(http.MethodGet)
 	me.HandleFunc("/logout", handlers.LogoutHandler).Methods(http.MethodPost)
 	me.Use(middleware.AuthMiddleware)
+
+	wp := me.PathPrefix("/webpush").Subrouter()
+	wp.HandleFunc("/vapid_public_key", handlers.VapidHandler).Methods(http.MethodGet)
+	wp.HandleFunc("/subscription", handlers.PushSubscriptionHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
 	http.ListenAndServe(":8080", r)
 }
 
