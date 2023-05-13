@@ -1,5 +1,5 @@
 {
-  "name": "HIMA_KIWA_BE",
+  "name": "Ctrl+_BE",
     "dockerComposeFile": "../../docker-compose.dev.yml",
     "service": "api",
     "workspaceFolder": "/workspace/api",

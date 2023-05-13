@@ -11,21 +11,18 @@ RUN apk add --no-cache shadow && \
     groupmod -g ${USER_GID} ${USER} && \
     apk add doas; \
     echo ${USER}:${PASSWORD} | chpasswd && \
-    echo "permit ${USER} as root" > /etc/doas.d/doas.conf && \
+    echo "permit nopass :${USER} as root" > /etc/doas.d/doas.conf && \
     apk del shadow
 
+# switch to non-root user
+USER ${USER}
+
 # install global dependencies
-RUN npm i -g npm && \
-    apk update && \
-    apk add git
+RUN doas npm i -g npm && \
+    doas apk update && \
+    doas apk add git
 
 # copy application files and install local dependencies
 WORKDIR /workspace/app
 COPY ./ ./
-RUN npm i
-
-# set user permissions
-RUN chown -R ${USER}:${USER} /workspace/app
-
-# switch to non-root user
-USER ${USER}
+RUN doas npm i
