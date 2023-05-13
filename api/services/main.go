@@ -2,10 +2,12 @@ package services
 
 import (
 	"himakiwa/services/users"
+	webpush_services "himakiwa/services/webpush"
 )
 
 type RepositoryServices struct {
-	users users.UsersService
+	users   users.UsersService
+	webpush webpush_services.WebpushService
 }
 
 func NewRepositoryServices() *RepositoryServices {
@@ -16,4 +18,8 @@ func NewRepositoryServices() *RepositoryServices {
 
 func (s *RepositoryServices) GetUser() users.UsersService {
 	return s.users
+}
+
+func (s *RepositoryServices) GetWebpush() webpush_services.WebpushService {
+	return s.webpush
 }

@@ -9,7 +9,18 @@ import (
 	"encoding/pem"
 	"fmt"
 	"testing"
+
+	"github.com/SherClockHolmes/webpush-go"
 )
+
+func TestVapid(t *testing.T) {
+	privateKey, publicKey, err := webpush.GenerateVAPIDKeys()
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Printf("private-key: %s\n", privateKey)
+	fmt.Printf("public-key: %s\n", publicKey)
+}
 
 func TestP256key(t *testing.T) {
 	// P-256 gen
