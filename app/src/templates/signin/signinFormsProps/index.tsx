@@ -136,7 +136,7 @@ export function useSigninFormsProps() {
 
           postSignin(email, password, basicState.name)
             .then((jwt) => {
-              if (!jwt) throw new Error();
+              if (jwt instanceof Error) throw new Error(jwt.message);
               codeState.setJwt(jwt);
               page.goToNextPage();
             })

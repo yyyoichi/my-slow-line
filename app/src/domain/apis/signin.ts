@@ -21,7 +21,7 @@ export const postSignin = async (email: string, password: string, name = '') => 
     if (res.status === 200) {
       return res.data.jwt;
     }
-    throw new Error(ErrorUnExpectedResponse);
+    return new Error(ErrorUnExpectedResponse);
   } catch (e) {
     throw e;
   }
@@ -43,11 +43,12 @@ export const postLogin = async (email: string, password: string) => {
       return res.data.jwt;
     }
     if (res.status === 400) {
-      throw new Error('Could not login. Please check your email and password.');
+      return new Error('Could not login. Please check your email and password.');
     }
     throw new Error(ErrorUnExpectedResponse);
   } catch (e) {
-    throw e;
+    console.error(e);
+    return new Error('unexpected error.');
   }
 };
 
@@ -64,7 +65,8 @@ export const postLogout = async () => {
     }
     throw new Error(ErrorUnExpectedResponse);
   } catch (e) {
-    throw e;
+    console.error(e);
+    return new Error('unexpected error.');
   }
 };
 
@@ -84,6 +86,7 @@ export const postVerificateCode = async (jwt: string, code: string) => {
     }
     throw new Error(ErrorUnExpectedResponse);
   } catch (e) {
-    throw e;
+    console.error(e);
+    return new Error('unexpected error.');
   }
 };
