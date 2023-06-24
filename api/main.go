@@ -29,17 +29,18 @@ func handler() {
 	api.HandleFunc("/signin", ah.SigninHandler).Methods(http.MethodPost)
 	api.HandleFunc("/login", ah.LoginHandler).Methods(http.MethodPost)
 	api.HandleFunc("/codein", ah.VerificateHandler).Methods(http.MethodPost)
-	api.Use(middleware.CROSMiddleware)
-	api.Use(middleware.CSRFMiddleware)
 
 	me := api.PathPrefix("/me").Subrouter()
 	me.HandleFunc("/", handlers.MeHandler).Methods(http.MethodGet)
 	me.HandleFunc("/logout", handlers.LogoutHandler).Methods(http.MethodPost)
 	me.Use(middleware.AuthMiddleware)
 
-	wp := me.PathPrefix("/webpush").Subrouter()
+	wp := api.PathPrefix("/webpush").Subrouter()
 	wp.HandleFunc("/vapid_public_key", handlers.VapidHandler).Methods(http.MethodGet)
 	wp.HandleFunc("/subscription", handlers.PushSubscriptionHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
+
+	api.Use(middleware.CSRFMiddleware)
+	api.Use(middleware.CROSMiddleware)
 	http.ListenAndServe(":8080", r)
 }
 
