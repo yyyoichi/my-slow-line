@@ -19,10 +19,11 @@ func TestWebpush(t *testing.T) {
 	endpoint := "endpoint"
 	p256dh := "testp256"
 	auth := "testauth"
+	userAgent := "iphone"
 	expTime := time.Now()
 
 	webpushRepository := &WebpushRepository{}
-	if err := webpushRepository.Create(tu.Id, endpoint, p256dh, auth, &expTime); err != nil {
+	if err := webpushRepository.Create(tu.Id, endpoint, p256dh, auth, userAgent, &expTime); err != nil {
 		t.Error(err)
 	}
 
@@ -44,6 +45,9 @@ func TestWebpush(t *testing.T) {
 	}
 	if result.Auth != auth {
 		t.Errorf("expected auth is '%s' but got='%s'", auth, result.Auth)
+	}
+	if result.UserAgent != userAgent {
+		t.Errorf("expected user_agent is '%s' but got='%s'", userAgent, result.UserAgent)
 	}
 	if result.UserId != tu.Id {
 		t.Errorf("expected userId is '%d' but got='%d'", tu.Id, result.UserId)

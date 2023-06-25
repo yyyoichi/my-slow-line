@@ -12,7 +12,8 @@ type RepositoryServices struct {
 
 func NewRepositoryServices() *RepositoryServices {
 	return &RepositoryServices{
-		users: users.UsersService{},
+		users:   users.UsersService{},
+		webpush: webpush_services.WebpushService{},
 	}
 }
 

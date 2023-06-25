@@ -13,13 +13,14 @@ type TWebpush struct {
 	Endpoint       string
 	P256dh         string
 	Auth           string
+	UserAgent      string
 	ExpirationTime sql.NullTime
 	CreateAt       time.Time
 }
 
 func (w *WebpushRepository) QueryByUserId(userId int) ([]TWebpush, error) {
 	// query
-	s := `SELECT id, endpoint, p256dh, auth, expiration_time, create_at FROM webpush WHERE user_id = ?`
+	s := `SELECT id, endpoint, p256dh, auth, user_agent, expiration_time, create_at FROM webpush WHERE user_id = ?`
 	rows, err := DB.Query(s, userId)
 	if err != nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (w *WebpushRepository) QueryByUserId(userId int) ([]TWebpush, error) {
 	var results []TWebpush
 	for rows.Next() {
 		twp := TWebpush{UserId: userId}
-		if err := rows.Scan(&twp.Id, &twp.Endpoint, &twp.P256dh, &twp.Auth, &twp.ExpirationTime, &twp.CreateAt); err != nil {
+		if err := rows.Scan(&twp.Id, &twp.Endpoint, &twp.P256dh, &twp.Auth, &twp.UserAgent, &twp.ExpirationTime, &twp.CreateAt); err != nil {
 			return nil, err
 		}
 		results = append(results, twp)
@@ -41,11 +42,11 @@ func (w *WebpushRepository) QueryByUserId(userId int) ([]TWebpush, error) {
 	return results, nil
 }
 
-func (w *WebpushRepository) Create(userId int, endpoint, p256dh, auth string, expTime *time.Time) error {
+func (w *WebpushRepository) Create(userId int, endpoint, p256dh, auth, userAgent string, expTime *time.Time) error {
 	// exec insert
-	s := `INSERT INTO webpush (user_id, endpoint, p256dh, auth, expiration_time, create_at) VALUES(?, ?, ?, ?, ?, ?)`
+	s := `INSERT INTO webpush (user_id, endpoint, p256dh, auth, user_agent, expiration_time, create_at) VALUES(?, ?, ?, ?, ?, ?, ?)`
 	now := time.Now()
-	_, err := DB.Exec(s, userId, endpoint, p256dh, auth, expTime, now)
+	_, err := DB.Exec(s, userId, endpoint, p256dh, auth, userAgent, expTime, now)
 	if err != nil {
 		return err
 	}

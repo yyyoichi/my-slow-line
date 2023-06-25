@@ -23,6 +23,7 @@ func main() {
 func handler() {
 	r := mux.NewRouter()
 	api := r.PathPrefix("/api").Subrouter()
+
 	api.HandleFunc("/safe", Safe).Methods(http.MethodGet)
 
 	ah := handlers.NewAutenticateHandlers()
@@ -35,16 +36,17 @@ func handler() {
 	me.HandleFunc("/logout", handlers.LogoutHandler).Methods(http.MethodPost)
 	me.Use(middleware.AuthMiddleware)
 
-	wp := api.PathPrefix("/webpush").Subrouter()
+	wp := me.PathPrefix("/webpush").Subrouter()
 	wp.HandleFunc("/vapid_public_key", handlers.VapidHandler).Methods(http.MethodGet)
 	wp.HandleFunc("/subscription", handlers.PushSubscriptionHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
 
-	api.Use(middleware.CSRFMiddleware)
 	api.Use(middleware.CROSMiddleware)
+	api.Use(middleware.CSRFMiddleware)
 	http.ListenAndServe(":8080", r)
 }
 
 func Safe(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("X-CSRF-Token", csrf.Token(r))
+	ctoken := csrf.Token(r)
+	w.Header().Set("X-CSRF-Token", ctoken)
 	w.WriteHeader(http.StatusOK)
 }

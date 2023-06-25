@@ -14,7 +14,6 @@ var CSRFMiddleware = csrf.Protect(key,
 	csrf.Secure(true),
 	csrf.HttpOnly(true),
 	csrf.ErrorHandler(http.HandlerFunc(csrfError)),
-	csrf.CookieName("_csrf_token"),
 	csrf.MaxAge(2),
 )
 
