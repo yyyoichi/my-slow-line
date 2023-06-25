@@ -9,11 +9,6 @@ export const useHomePageProps = () => {
   const ac = React.useContext(MyAccountContext);
   const [notifierButtonEnable, setNotifierButtonEnable] = React.useState(true);
   const [subscription, setSubscription] = React.useState('');
-  React.useEffect(() => {
-    webPUshIsSupported().then((res) => {
-      console.log('push support', res);
-    });
-  }, []);
   const subscribeNotifier = async () => {
     setNotifierButtonEnable(false);
     const enableWebpush = await webPUshIsSupported();
@@ -26,15 +21,14 @@ export const useHomePageProps = () => {
       window.alert('Unexpected error occured. Please try agein.');
       return setNotifierButtonEnable(true);
     }
-    console.log(key);
-    if (window.Notification.permission === 'default') {
-      const result = await window.Notification.requestPermission();
+    if (window?.Notification?.permission === 'default') {
+      const result = await window?.Notification?.requestPermission();
       if (result === 'default') {
         window.alert('Reject web notifications. Please click');
         return setNotifierButtonEnable(true);
       }
     }
-    if (window.Notification.permission === 'denied') {
+    if (window?.Notification?.permission === 'denied') {
       window.alert('Push notifications are blocked. Please unblock notifications from your browser settings.');
       return setNotifierButtonEnable(true);
     }
@@ -53,9 +47,8 @@ export const useHomePageProps = () => {
     }
     setSubscription(JSON.stringify(subscriptionJSON));
   };
-  const reqPwa = isIos && !isPwa;
-  const content = !ac.myAccount.has ? 'login' : reqPwa ? 'pwa' : !hasNotification ? 'notification' : 'notification';
-  console.log(content);
+  const reqPwa = isIos && !isPwa();
+  const content = reqPwa ? 'pwa' : !ac.myAccount.has ? 'login' : !hasNotification() ? 'notification' : 'notification';
   const props: HomePageProps = {
     switchContext: {
       content,
