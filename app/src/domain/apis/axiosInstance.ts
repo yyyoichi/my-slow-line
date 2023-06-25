@@ -11,7 +11,7 @@ export const tokenizeFetch = async <T>(config: AxiosRequestConfig) => {
   const token = res.headers['x-csrf-token'];
   config.headers = {
     ...config.headers,
-    'X-Csrf-Token': token,
+    'X-CSRF-Token': token,
   };
   return await instance.request<T>(config);
 };

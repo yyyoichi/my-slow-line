@@ -2,13 +2,12 @@ import React from 'react';
 import { MyAccountContext } from 'hooks';
 import { hasNotification, isPwa, webPUshIsSupported } from 'domain/web/servicesupport';
 import { HomePageProps } from 'components/home';
-import { getVapidPublicKey } from 'domain/apis/webpush';
+import { getVapidPublicKey, setSubscription } from 'domain/apis/webpush';
 import { isIos } from 'domain/web/device';
 
 export const useHomePageProps = () => {
   const ac = React.useContext(MyAccountContext);
   const [notifierButtonEnable, setNotifierButtonEnable] = React.useState(true);
-  const [subscription, setSubscription] = React.useState('');
   const subscribeNotifier = async () => {
     setNotifierButtonEnable(false);
     const enableWebpush = await webPUshIsSupported();
@@ -45,7 +44,13 @@ export const useHomePageProps = () => {
       window.alert('The tokens issued by your browser are not yet supported, so push notifications are not available.');
       return setNotifierButtonEnable(true);
     }
-    setSubscription(JSON.stringify(subscriptionJSON));
+    const resp = await setSubscription(subscriptionJSON);
+    if (resp instanceof Error || !resp) {
+      window.alert('Failture. Please retry.');
+      return setNotifierButtonEnable(true);
+    }
+    setNotifierButtonEnable(true);
+    console.debug('success notifier');
   };
   const reqPwa = isIos && !isPwa();
   const content = reqPwa ? 'pwa' : !ac.myAccount.has ? 'login' : !hasNotification() ? 'notification' : 'notification';
@@ -60,7 +65,7 @@ export const useHomePageProps = () => {
           subscribeNotifier();
         },
       },
-      tmpResult: subscription,
+      tmpResult: '',
     },
   };
   return props;
