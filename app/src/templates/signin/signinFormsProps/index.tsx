@@ -105,6 +105,7 @@ export function useSigninFormsProps() {
       },
       confirmPassword: {
         input: {
+          visible: pageState.isLoading ? false : undefined,
           value: basicState.confirmPassword,
           onChange: (e) => {
             basicState.setConfirmPassword(e.target.value);

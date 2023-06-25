@@ -50,6 +50,7 @@ export function useLoginFormsProps() {
       },
       password: {
         input: {
+          visible: pageState.isLoading ? false : undefined,
           value: basicState.password,
           onChange: (e) => basicState.setPassword(e.target.value),
           readOnly: pageState.isLoading,
