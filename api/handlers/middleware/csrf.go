@@ -18,6 +18,6 @@ var CSRFMiddleware = csrf.Protect(key,
 )
 
 func csrfError(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("invalid token from '%s' method '%s' to '%s'", r.Host, r.Method, r.RequestURI)
+	fmt.Printf("invalid token from '%s' method '%s' to '%s'\n", r.Host, r.Method, r.RequestURI)
 	http.Error(w, "error", http.StatusForbidden)
 }

@@ -39,7 +39,7 @@ export const useHomePageProps = () => {
       }),
     );
     const subscriptionJSON = currentLocalSubscription.toJSON();
-    console.log(subscriptionJSON);
+    console.debug(subscriptionJSON);
     if (subscriptionJSON.endpoint == null || subscriptionJSON.keys == null) {
       window.alert('The tokens issued by your browser are not yet supported, so push notifications are not available.');
       return setNotifierButtonEnable(true);
