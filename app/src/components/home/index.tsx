@@ -1,53 +1,70 @@
-import Link from 'next/link';
 import React from 'react';
-import { UiHead } from '../frame';
-import { DivProps } from 'components/atoms/type';
 import { NonNullablePick } from 'components';
+import FormFrame from 'components/frame/FormFrame';
+import { LoadButton, LoadButtonProps } from 'components/frame/LoadButton';
+import { SwitchAnimContent, SwitchAnimContext, SwitchAnimContextProps } from 'components/anims/SwitchAnim';
 
-export type HeadProps = {
-  isLogined: boolean;
-  user: UserProps;
-};
-export const Head = (props: HeadProps) => {
-  return <UiHead>{props.isLogined ? <User {...props.user} /> : <Guest />}</UiHead>;
-};
+type AnimType = 'login' | 'pwa' | 'notification' | '';
 
-type UserProps = {
-  icon: NonNullablePick<DivProps, 'children'>;
-  logout: NonNullablePick<DivProps, 'onClick'>;
+export type HomePageProps = {
+  switchContext: SwitchAnimContextProps<AnimType>;
+  notification: ReqNotifierProps;
 };
-const User = ({ icon, logout }: UserProps) => {
-  const logoutProps: DivProps = {
-    ...logout,
-    className: 'mx-2 inline-block rounded border-2 border-my-white px-3 py-1',
-    children: 'logout',
-  };
-  const iconProps: DivProps = {
-    ...icon,
-    className:
-      'flex aspect-square w-10 items-center justify-center rounded-full bg-my-white p-1 pb-2 text-xl font-bold text-my-black',
+export const HomePage = ({ switchContext, ...props }: HomePageProps) => {
+  const switchAnimContextProps: SwitchAnimContextProps<AnimType> = {
+    ...switchContext,
   };
   return (
-    <div className='ml-auto flex gap-4'>
-      <div {...logoutProps} />
-      <div {...iconProps} />
-    </div>
+    <SwitchAnimContext {...switchAnimContextProps}>
+      <SwitchAnimContent content='login'>
+        <ReqLogin />
+      </SwitchAnimContent>
+      <SwitchAnimContent content='pwa'>
+        <ReqPwa />
+      </SwitchAnimContent>
+      <SwitchAnimContent content='notification'>
+        <ReqNotifier {...props.notification} />
+      </SwitchAnimContent>
+    </SwitchAnimContext>
   );
 };
 
-const Guest = () => {
+const ReqLogin = () => {
   return (
-    <div className='ml-auto px-4'>
-      <Link prefetch={true} className='mx-2 inline-block rounded border-2 border-my-white px-3 py-1' href={'/login'}>
-        login
-      </Link>
-      <Link
-        prefetch={true}
-        className='mx-2 inline-block rounded border-2 border-my-white bg-my-white px-3 py-1 font-semibold text-my-black'
-        href={'/signin'}
-      >
-        signin
-      </Link>
-    </div>
+    <FormFrame.Container>
+      <FormFrame.Content>Please Login!</FormFrame.Content>
+    </FormFrame.Container>
+  );
+};
+
+const ReqPwa = () => {
+  return (
+    <FormFrame.Container>
+      <FormFrame.Content>
+        <p>Please Add Home.</p>
+        <p>This app must be added to the home screen.</p>
+      </FormFrame.Content>
+    </FormFrame.Container>
+  );
+};
+
+type ReqNotifierProps = {
+  notificationButton: NonNullablePick<LoadButtonProps, 'onClick' | 'active'>;
+  tmpResult: string;
+};
+const ReqNotifier = (props: ReqNotifierProps) => {
+  const buttonProps: LoadButtonProps = {
+    color: 'yellow',
+    children: 'Subscribe notifications',
+    ...props.notificationButton,
+  };
+  return (
+    <FormFrame.Container>
+      <FormFrame.Content>
+        <p>For secure communication, This app must allow notifications.</p>
+        <LoadButton {...buttonProps} />
+        <p>{props.tmpResult}</p>
+      </FormFrame.Content>
+    </FormFrame.Container>
   );
 };

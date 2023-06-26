@@ -15,21 +15,26 @@ import { useState } from 'react';
 import { NonNullablePick } from 'components';
 
 export type PasswordFieldProps = {
-  input: NonNullablePick<UiInputProps, 'value' | 'onChange' | 'readOnly'>;
+  input: NonNullablePick<UiInputProps, 'value' | 'onChange' | 'readOnly'> & { visible?: boolean };
 };
 
-export const PasswordField = (props: PasswordFieldProps) => {
-  const [visiblePassword, setVisiblePassword] = useState<boolean>(false);
+export const PasswordField = ({ input: { visible, ...props } }: PasswordFieldProps) => {
+  const [visiblePassword, setVisiblePassword] = useState<boolean>(Boolean);
   const passwordToggleViewProps: PasswordToggleViewProps = {
     icon: {
       view: !visiblePassword,
       onClick: () => setVisiblePassword((v) => !v),
     },
   };
+  React.useEffect(() => {
+    if (typeof visible !== 'undefined') {
+      setVisiblePassword(visible);
+    }
+  }, [visible]);
   const inputProps: UiInputProps = {
-    type: visiblePassword ? 'password' : 'text',
+    type: visiblePassword ? 'text' : 'password',
     className: visiblePassword ? 'text-[1.3rem]' : '',
-    ...props.input,
+    ...props,
   };
   return (
     <div className='flex items-center bg-my-white pr-2'>

@@ -147,3 +147,29 @@ func (u *UsersService) SoftDelete(userId int) error {
 	users := &database.UserRepository{}
 	return users.SoftDeleteById(userId)
 }
+
+// webpush services
+type WebpushService struct {
+	UserId int
+}
+
+func (u *UsersService) GetWebpush(userId int) WebpushService {
+	return WebpushService{UserId: userId}
+}
+
+func (w *WebpushService) Qeury() (*[]database.TWebpush, error) {
+	return nil, nil
+}
+
+func (w *WebpushService) Create(endpoint, p256dh, auth string, expTime *time.Time) error {
+	// validation
+	if endpoint == "" || p256dh == "" || auth == "" {
+		return ErrInValidParams
+	}
+
+	return nil
+}
+
+func (w *WebpushService) Delete() error {
+	return nil
+}

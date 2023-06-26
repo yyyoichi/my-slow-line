@@ -1,6 +1,6 @@
 import React from 'react';
 import { MyAccountContext } from 'hooks';
-import { HeadProps } from 'components/home';
+import { HeadProps } from 'components/head';
 import { postLogout } from 'domain/apis/signin';
 
 export const useHeadProps = () => {

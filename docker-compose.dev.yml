@@ -12,7 +12,7 @@ services:
       dockerfile: .devcontainer/Dockerfile.dev
     container_name: "app"
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     tty: true
     volumes:
       - .:/workspace:cached
@@ -29,7 +29,7 @@ services:
       dockerfile: .devcontainer/Dockerfile.dev
     container_name: "api"
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8080:8080"
     env_file:
       - ./.env
     tty: true
@@ -53,7 +53,7 @@ services:
       - MYSQL_TCP_PORT=3306
     container_name: mariadb
     ports:
-      - "127.0.0.1:3306:3306"
+      - "3306:3306"
     restart: always
     volumes:
       - ./db/init.d:/docker-entrypoint-initdb.d
@@ -74,8 +74,8 @@ services:
       - ./nginx:/etc/nginx/conf.d/
       - ./nginx/cert/:/etc/certs/:ro
     ports:
-      - "127.0.0.1:80:80"
-      - "127.0.0.1:443:443"
+      - "80:80"
+      - "443:443"
     tty: true
     environment:
       TZ: Asia/Tokyo

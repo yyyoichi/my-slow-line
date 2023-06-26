@@ -50,6 +50,7 @@ export function useLoginFormsProps() {
       },
       password: {
         input: {
+          visible: pageState.isLoading ? false : undefined,
           value: basicState.password,
           onChange: (e) => basicState.setPassword(e.target.value),
           readOnly: pageState.isLoading,
@@ -81,7 +82,7 @@ export function useLoginFormsProps() {
 
           postLogin(basicState.email, basicState.password)
             .then((jwt) => {
-              if (!jwt) throw new Error();
+              if (jwt instanceof Error) throw new Error(jwt.message);
               codeState.setJwt(jwt);
               page.goToNextPage();
             })
