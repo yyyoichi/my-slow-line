@@ -11,7 +11,7 @@ const withPWA = require('next-pwa')({
 /**@type {import('next').NextConfig}*/
 const nextConfig = {
   /* config options here */
-  distDir: 'out',
+  // distDir: 'out',
 };
 
 module.exports = withPWA(nextConfig);

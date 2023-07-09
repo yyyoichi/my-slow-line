@@ -1,15 +1,27 @@
 package main
 
 import (
+	"embed"
+	"errors"
 	"fmt"
 	"himakiwa/handlers"
 	"himakiwa/handlers/middleware"
 	"himakiwa/services/database"
+	"io"
+	"log"
+	"mime"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 )
+
+//go:embed all:out
+var assets embed.FS
 
 func init() {
 	database.Connect()
@@ -42,11 +54,77 @@ func handler() {
 
 	api.Use(middleware.CROSMiddleware)
 	api.Use(middleware.CSRFMiddleware)
-	http.ListenAndServe(":8080", r)
+
+	// route static files
+	r.NotFoundHandler = http.HandlerFunc(NotFoundHandler)
+
+	port := os.Getenv("APP_PORT")
+	if port == "" {
+		port = "8080"
+	}
+	addr := fmt.Sprintf(":%s", port)
+	http.ListenAndServe(addr, r)
 }
 
 func Safe(w http.ResponseWriter, r *http.Request) {
 	ctoken := csrf.Token(r)
 	w.Header().Set("X-CSRF-Token", ctoken)
 	w.WriteHeader(http.StatusOK)
+}
+
+func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	err := tryRead(r.URL.Path, w)
+	if err == nil {
+		return
+	}
+	err = tryRead("404.html", w)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+}
+
+func tryRead(requestedPath string, w http.ResponseWriter) error {
+	reqPath := path.Join("out", requestedPath)
+	if reqPath == "out" {
+		reqPath = "out/index"
+	}
+	extension := strings.LastIndex(reqPath, ".")
+	if extension == -1 {
+		reqPath = fmt.Sprintf("%s.html", reqPath)
+	}
+	fmt.Printf("'GET' to '%s' origin '%s'\n", reqPath, requestedPath)
+
+	// read file
+	f, err := assets.Open(reqPath)
+	if err != nil {
+		log.Printf("'%s' is not found \n", requestedPath)
+		return err
+	}
+	defer f.Close()
+
+	// dir check
+	stat, err := f.Stat()
+	if err != nil {
+		log.Printf("'%s' is found but it cannot get file info \n", requestedPath)
+		return err
+	}
+	if stat.IsDir() {
+		return errors.New("path is dir")
+	}
+
+	// content type check
+	ext := filepath.Ext(requestedPath)
+	var contentType string
+
+	if m := mime.TypeByExtension(ext); m != "" {
+		contentType = m
+	} else {
+		contentType = "text/html"
+	}
+
+	w.Header().Set("Content-Type", contentType)
+	io.Copy(w, f)
+
+	return nil
 }

@@ -73,6 +73,7 @@ services:
     volumes:
       - ./nginx:/etc/nginx/conf.d/
       - ./nginx/cert/:/etc/certs/:ro
+      - ./nginx.dev.conf:/etc/nginx/conf.d/nginx.conf
     ports:
       - "80:80"
       - "443:443"
