@@ -1,0 +1,44 @@
+version: '3'
+volumes:
+  nginx_error_logs:
+
+
+services:
+  application:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+      args:
+        - USER_NAME=${USER_NAME}
+        - USER_ID=${USER_ID}
+        - USER_GID=${USER_GID}
+        - PASSWORD=${PASSWORD}
+    container_name: "ctrl-plus"
+    image: ctrl-plus
+    ports:
+      - "9000:8080"
+    tty: true
+    env_file:
+      - ./.env
+    environment:
+      - DB_HOST=mariadb
+      - DB_USER=appuser
+      - DB_PASSWOR=password
+      - DB_DATABASE=message
+      - DB_PORT=3306
+      - JWT_SECRET=devjwtsecret
+      - NODE_ENV=development
+
+  nginx_server:
+    image: nginx:alpine
+    volumes:
+      - ./nginx:/etc/nginx/conf.d/
+      - ./nginx/cert/:/etc/certs/:ro
+      - nginx_error_logs:/etc/nginx/conf.d/log/
+      - ./nginx.test.conf:/etc/nginx/conf.d/nginx.conf
+    ports:
+      - "80:80"
+      - "443:443"
+    tty: true
+    environment:
+      TZ: Asia/Tokyo

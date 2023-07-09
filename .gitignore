@@ -2,6 +2,8 @@ db-data
 nginx/log/
 .env
 
+deploy/docker-compose.yml
+
 # dependencies
 /node_modules
 /.pnp
