@@ -43,6 +43,16 @@ func (fr *FRecruitmentRepository) QueryByUserId(userId int) ([]TFRecruitment, er
 	return results, nil
 }
 
+func (fr *FRecruitmentRepository) UpdateMessage(uuid string, message string) error {
+	// query
+	s := `UPDATE friend_recruitment SET message = ? WHERE uuid = ? `
+	_, err := DB.Exec(s, message, uuid)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (fr *FRecruitmentRepository) Create(userId int, uuid, message string) error {
 	// query
 	s := `INSERT INTO friend_recruitment (user_id, uuid, message) VALUE(?,?,?)`

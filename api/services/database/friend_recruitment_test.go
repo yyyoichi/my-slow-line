@@ -37,6 +37,26 @@ func TestFriendRecruitment(t *testing.T) {
 		t.Errorf("expected uuid is '%s' but got='%s'", uuid, fr.Uuid)
 	}
 
+	updateMessage := "Hello"
+	// update
+	if err = frRepository.UpdateMessage(uuid, updateMessage); err != nil {
+		t.Error(err)
+	}
+	// get
+	frs, err = frRepository.QueryByUserId(tu.Id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(frs) != 1 {
+		t.Error("friend-recruitment doesnot exist")
+	}
+
+	fr = frs[0]
+	if fr.Message != updateMessage {
+		t.Errorf("expected message is '%s' but got='%s'", updateMessage, fr.Message)
+	}
+
 	// delete
 	if err = frRepository.DeleteAll(tu.Id); err != nil {
 		t.Error(err)
