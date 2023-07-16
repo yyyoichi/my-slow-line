@@ -1,2 +1,9 @@
 out
-deploy
+
+.env*
+*.pem
+
+deploy/main
+deploy/nginx.conf
+
+.env.develop
