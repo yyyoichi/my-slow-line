@@ -194,3 +194,39 @@ func TestUpdateCode(t *testing.T) {
 	}
 
 }
+
+func TestQueryByUuid(t *testing.T) {
+	usersR := &UserRepository{}
+
+	m := createMockUser()
+	tu, close := userMock(t, usersR, m)
+	defer close()
+
+	uuid := "uuid"
+	message := "Hello"
+
+	recruitR := &FRecruitmentRepository{}
+	err := recruitR.Create(tu.Id, uuid, message)
+	defer recruitR.DeleteAll(tu.Id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	recruitUser, err := usersR.QueryByRecruitUuid(uuid)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if recruitUser.Id != tu.Id {
+		t.Errorf("expceted id is '%d' but got='%d'", tu.Id, recruitUser.Id)
+	}
+	if recruitUser.Name != tu.Name {
+		t.Errorf("expected name is '%s' but got='%s'", tu.Name, recruitUser.Name)
+	}
+	if recruitUser.Uuid != uuid {
+		t.Errorf("expected uuid is '%s' but got='%s'", uuid, recruitUser.Uuid)
+	}
+	if recruitUser.Message != message {
+		t.Errorf("expcted message is '%s' but got='%s'", message, recruitUser.Message)
+	}
+}

@@ -22,6 +22,13 @@ type TUser struct {
 	dbTwoVerificated int64
 }
 
+type TRecruiteUser struct {
+	Id      int
+	Name    string
+	Message string
+	Uuid    string
+}
+
 type UserRepository struct{}
 
 func (u *UserRepository) Create(name, email, hashedPass, vcode string) (*TUser, error) {
@@ -92,6 +99,22 @@ func (u *UserRepository) QueryByEMail(email string) (*TUser, error) {
 	// map
 	tu.Deleted = tu.dbDeleted == 1
 	tu.TwoVerificated = tu.dbTwoVerificated == 1
+	return tu, nil
+}
+
+func (u *UserRepository) QueryByRecruitUuid(uuid string) (*TRecruiteUser, error) {
+	// query user
+	tu := &TRecruiteUser{Uuid: uuid}
+	s := `SELECT u.id, u.name, r.message
+	 			FROM friend_recruitment AS r
+					JOIN users AS u ON r.user_id = u.id	
+				WHERE r.uuid = ?`
+	row := DB.QueryRow(s, uuid)
+	err := row.Scan(&tu.Id, &tu.Name, &tu.Message)
+	if err != nil {
+		return nil, err
+	}
+
 	return tu, nil
 }
 
