@@ -5,6 +5,8 @@ import (
 	"errors"
 	"himakiwa/services/database"
 	"time"
+
+	googleUuid "github.com/google/uuid"
 )
 
 var (
@@ -14,6 +16,7 @@ var (
 	ErrInvalidPassword = errors.New("invalid password does not match password")
 	ErrInvalidVCode    = errors.New("invalid password does not match vcode")
 	ErrUnexpected      = errors.New("unexpected errors occuered")
+	ErrInvalidUuid     = errors.New("invalid uuid")
 )
 
 type UsersService struct{}
@@ -130,6 +133,18 @@ func (u *UsersService) Query(userId int) (*database.TUser, error) {
 	return tu, nil
 }
 
+func (u *UsersService) QueryByRecruitUuid(uuid string) (*database.TRecruiteUser, error) {
+	if uuid == "" {
+		return nil, ErrInValidParams
+	}
+	users := database.UserRepository{}
+	tu, err := users.QueryByRecruitUuid(uuid)
+	if err != nil {
+		return nil, err
+	}
+	return tu, nil
+}
+
 func (u *UsersService) HardDelete(userId int) error {
 	if userId == 0 {
 		return ErrInValidParams
@@ -148,28 +163,63 @@ func (u *UsersService) SoftDelete(userId int) error {
 	return users.SoftDeleteById(userId)
 }
 
-// webpush services
-type WebpushService struct {
+type FriendRecruitService struct {
 	UserId int
 }
 
-func (u *UsersService) GetWebpush(userId int) WebpushService {
-	return WebpushService{UserId: userId}
+func (u *UsersService) GetFriendRecruitService(userId int) FriendRecruitService {
+	return FriendRecruitService{UserId: userId}
 }
 
-func (w *WebpushService) Qeury() (*[]database.TWebpush, error) {
-	return nil, nil
+func (f *FriendRecruitService) Query() ([]database.TFRecruitment, error) {
+	repository := database.FRecruitmentRepository{}
+	recruits, err := repository.QueryByUserId(f.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return recruits, nil
 }
 
-func (w *WebpushService) Create(endpoint, p256dh, auth string, expTime *time.Time) error {
-	// validation
-	if endpoint == "" || p256dh == "" || auth == "" {
-		return ErrInValidParams
+func (f *FriendRecruitService) UpdateMessageAt(uuid, message string) error {
+	// has uuid in user
+	recruits, err := f.Query()
+	if err != nil {
+		return err
+	}
+
+	ownUuid := false
+	for _, rc := range recruits {
+		if rc.Uuid == uuid {
+			ownUuid = true
+		}
+	}
+	if !ownUuid {
+		return ErrInvalidUuid
+	}
+
+	// update
+	repository := database.FRecruitmentRepository{}
+	err = repository.UpdateMessage(uuid, message)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (w *WebpushService) Delete() error {
+func (f *FriendRecruitService) Create(message string) error {
+	uuid := googleUuid.NewString()
+	repository := database.FRecruitmentRepository{}
+	if err := repository.Create(f.UserId, uuid, message); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (f *FriendRecruitService) DeleteHard() error {
+	repository := database.FRecruitmentRepository{}
+	if err := repository.DeleteAll(f.UserId); err != nil {
+		return err
+	}
 	return nil
 }
