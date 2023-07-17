@@ -16,6 +16,33 @@ type ChatSession struct {
 
 type ChatSessionRepository struct{}
 
+func (csr *ChatSessionRepository) Query(sessionID int) ([]ChatSession, error) {
+	// query
+	query := `SELECT id, user_id, public_key, name, create_at, update_at, deleted FROM chat_sessions WHERE id = ?`
+	rows, err := DB.Query(query, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// results
+	var results []ChatSession
+	for rows.Next() {
+		cs := ChatSession{}
+		err := rows.Scan(&cs.ID, &cs.UserID, &cs.PublicKey, &cs.Name, &cs.CreateAt, &cs.UpdateAt, &cs.Deleted)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, cs)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 func (csr *ChatSessionRepository) QueryByUserID(userID int) ([]ChatSession, error) {
 	// query
 	query := `SELECT id, user_id, public_key, name, create_at, update_at, deleted FROM chat_sessions WHERE user_id = ?`
@@ -189,6 +216,43 @@ func (cr *ChatRepository) QueryBySessionID(sessionID int) ([]Chat, error) {
 	// query
 	query := `SELECT id, chat_session_id, user_id, content, create_at, update_at, deleted FROM chats WHERE chat_session_id = ?`
 	rows, err := DB.Query(query, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// results
+	var results []Chat
+	for rows.Next() {
+		c := Chat{}
+		err := rows.Scan(&c.ID, &c.SessionID, &c.UserID, &c.Content, &c.CreateAt, &c.UpdateAt, &c.Deleted)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// QueryByUserIDAndTimeRange retrieves chat messages created within a specified time range for a given user ID.
+// It takes the userID as the ID of the user to query, endTime as the upper limit of the time range.
+// The function returns a slice of Chat structs representing the retrieved messages, or an error if the query fails.
+func (cr *ChatRepository) QueryByUserIDAndTimeRange(userID int, endTime time.Time) ([]Chat, error) {
+	startTime := time.Now().Add(-24 * time.Hour)
+
+	// query
+	query := `
+	SELECT id, chat_session_id, user_id, content, create_at, update_at, deleted 
+	FROM chats 
+	WHERE user_id = ?
+		AND create_at >= ? 
+		AND create_at <= ?`
+	rows, err := DB.Query(query, userID, startTime, endTime)
 	if err != nil {
 		return nil, err
 	}

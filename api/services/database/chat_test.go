@@ -2,6 +2,7 @@ package database
 
 import (
 	"testing"
+	"time"
 )
 
 func TestChatSession(t *testing.T) {
@@ -32,6 +33,21 @@ func TestChatSession(t *testing.T) {
 	}
 
 	session := sessions[0]
+	if session.Name != "Test Chat Session" {
+		t.Errorf("Expected chat session name 'Test Chat Session', but got '%s'", session.Name)
+	}
+
+	// Test Query method
+	sessions, err = csr.Query(session.ID)
+	if err != nil {
+		t.Errorf("Error querying chat sessions: %s", err.Error())
+	}
+
+	if len(sessions) != 1 {
+		t.Error("Expected 1 chat session, but got", len(sessions))
+	}
+
+	session = sessions[0]
 	if session.Name != "Test Chat Session" {
 		t.Errorf("Expected chat session name 'Test Chat Session', but got '%s'", session.Name)
 	}
@@ -95,6 +111,7 @@ func TestChatSessionParticipant(t *testing.T) {
 		t.Fatal("Expected 1 chat session, but got", len(sessions))
 	}
 	session := sessions[0]
+	defer csr.Delete(session.ID)
 
 	// Create the ChatSessionParticipantRepository instance
 	cspr := &ChatSessionParticipantRepository{}
@@ -193,44 +210,61 @@ func TestChat(t *testing.T) {
 		t.Fatal("Expected 1 chat session, but got", len(sessions))
 	}
 	session := sessions[0]
+	defer csr.Delete(session.ID)
 
 	// Create the ChatRepository instance
 	cr := &ChatRepository{}
 
 	// Test Create method
-	err = cr.Create(session.ID, testUser.Id, "Test Chat")
+	err = cr.Create(session.ID, testUser.Id, "Test message")
 	if err != nil {
-		t.Errorf("Error creating chat: %s", err.Error())
+		t.Errorf("Error creating chat message: %s", err.Error())
 	}
 
 	// Test QueryBySessionID method
-	chats, err := cr.QueryBySessionID(session.ID)
+	messages, err := cr.QueryBySessionID(session.ID)
 	if err != nil {
-		t.Errorf("Error querying chats: %s", err.Error())
+		t.Errorf("Error querying chat messages: %s", err.Error())
 	}
 
-	if len(chats) != 1 {
-		t.Error("Expected 1 chat, but got", len(chats))
+	if len(messages) != 1 {
+		t.Error("Expected 1 chat message, but got", len(messages))
 	}
 
-	chat := chats[0]
-	if chat.Content != "Test Chat" {
-		t.Errorf("Expected chat content 'Test Chat', but got '%s'", chat.Content)
+	message := messages[0]
+	if message.SessionID != session.ID {
+		t.Errorf("Expected chat message session ID '1', but got '%d'", message.SessionID)
 	}
 
-	// Test DeleteBySessionAndUser method
-	err = cr.DeleteBySessionAndUser(session.ID, testUser.Id)
+	// Test QueryByUserIDAndTimeRange method
+	endTime := time.Now()
+	messages, err = cr.QueryByUserIDAndTimeRange(testUser.Id, endTime)
 	if err != nil {
-		t.Errorf("Error deleting chat: %s", err.Error())
+		t.Errorf("Error querying chat messages: %s", err.Error())
 	}
 
-	// Verify that the chat has been deleted
-	chats, err = cr.QueryBySessionID(session.ID)
+	if len(messages) != 1 {
+		t.Error("Expected 1 chat message, but got", len(messages))
+	}
+
+	message = messages[0]
+	if message.UserID != testUser.Id {
+		t.Errorf("Expected chat message user ID '%d', but got '%d'", testUser.Id, message.UserID)
+	}
+
+	// Test Delete method
+	err = cr.Delete(session.ID)
 	if err != nil {
-		t.Errorf("Error querying chats: %s", err.Error())
+		t.Errorf("Error deleting chat messages: %s", err.Error())
 	}
 
-	if len(chats) != 0 {
-		t.Error("Expected 0 chats, but got", len(chats))
+	// Verify that all chat messages have been deleted
+	messages, err = cr.QueryBySessionID(session.ID)
+	if err != nil {
+		t.Errorf("Error querying chat messages: %s", err.Error())
+	}
+
+	if len(messages) != 0 {
+		t.Error("Expected 0 chat messages, but got", len(messages))
 	}
 }
