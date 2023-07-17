@@ -95,13 +95,12 @@ func TestChatSessionParticipant(t *testing.T) {
 		t.Fatal("Expected 1 chat session, but got", len(sessions))
 	}
 	session := sessions[0]
-	defer csr.DeleteAll(testUser.Id)
 
 	// Create the ChatSessionParticipantRepository instance
 	cspr := &ChatSessionParticipantRepository{}
 
 	// Test Create method
-	err = cspr.Create(session.ID, testUser.Id)
+	err = cspr.Create(session.ID, testUser.Id, Joined)
 	if err != nil {
 		t.Errorf("Error creating chat session participant: %s", err.Error())
 	}
@@ -119,6 +118,41 @@ func TestChatSessionParticipant(t *testing.T) {
 	participant := participants[0]
 	if participant.UserID != testUser.Id {
 		t.Errorf("Expected chat session participant user ID '%d', but got '%d'", testUser.Id, participant.UserID)
+	}
+
+	// Test QueryBySessionAndUser method
+	participantByID, err := cspr.QueryBySessionAndUser(session.ID, testUser.Id)
+	if err != nil {
+		t.Errorf("Error querying chat session participant by session and user: %s", err.Error())
+	}
+
+	if participantByID == nil {
+		t.Error("Expected chat session participant, but got nil")
+	} else {
+		if participantByID.UserID != testUser.Id {
+			t.Errorf("Expected chat session participant user ID '%d', but got '%d'", testUser.Id, participantByID.UserID)
+		}
+	}
+
+	// Test UpdateStatus method
+	err = cspr.UpdateStatus(participant.ID, Rejected)
+	if err != nil {
+		t.Errorf("Error updating chat session participant status: %s", err.Error())
+	}
+
+	// Verify updated status
+	participants, err = cspr.QueryBySessionID(session.ID)
+	if err != nil {
+		t.Errorf("Error querying chat session participants: %s", err.Error())
+	}
+
+	if len(participants) != 1 {
+		t.Error("Expected 1 chat session participant, but got", len(participants))
+	}
+
+	participant = participants[0]
+	if participant.Status != Rejected {
+		t.Errorf("Expected chat session participant status '%s', but got '%s'", Rejected, participant.Status)
 	}
 
 	// Test DeleteAll method

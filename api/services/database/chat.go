@@ -81,16 +81,25 @@ type ChatSessionParticipant struct {
 	ID        int
 	SessionID int
 	UserID    int
+	Status    ParticipantStatus
 	CreateAt  time.Time
 	UpdateAt  time.Time
 	Deleted   bool
 }
 
+type ParticipantStatus string
+
+const (
+	Invited  ParticipantStatus = "invited"
+	Joined   ParticipantStatus = "joined"
+	Rejected ParticipantStatus = "rejected"
+)
+
 type ChatSessionParticipantRepository struct{}
 
 func (cspr *ChatSessionParticipantRepository) QueryBySessionID(sessionID int) ([]ChatSessionParticipant, error) {
 	// query
-	query := `SELECT id, chat_session_id, user_id, create_at, update_at, deleted FROM chat_session_participants WHERE chat_session_id = ?`
+	query := `SELECT id, chat_session_id, user_id, status, create_at, update_at, deleted FROM chat_session_participants WHERE chat_session_id = ?`
 	rows, err := DB.Query(query, sessionID)
 	if err != nil {
 		return nil, err
@@ -101,7 +110,7 @@ func (cspr *ChatSessionParticipantRepository) QueryBySessionID(sessionID int) ([
 	var results []ChatSessionParticipant
 	for rows.Next() {
 		csp := ChatSessionParticipant{}
-		err := rows.Scan(&csp.ID, &csp.SessionID, &csp.UserID, &csp.CreateAt, &csp.UpdateAt, &csp.Deleted)
+		err := rows.Scan(&csp.ID, &csp.SessionID, &csp.UserID, &csp.Status, &csp.CreateAt, &csp.UpdateAt, &csp.Deleted)
 		if err != nil {
 			return nil, err
 		}
@@ -115,10 +124,25 @@ func (cspr *ChatSessionParticipantRepository) QueryBySessionID(sessionID int) ([
 	return results, nil
 }
 
-func (cspr *ChatSessionParticipantRepository) Create(sessionID int, userID int) error {
+func (cspr *ChatSessionParticipantRepository) QueryBySessionAndUser(sessionID int, userID int) (*ChatSessionParticipant, error) {
 	// query
-	query := `INSERT INTO chat_session_participants (chat_session_id, user_id) VALUES (?, ?)`
-	_, err := DB.Exec(query, sessionID, userID)
+	query := `SELECT id, chat_session_id, user_id, status, create_at, update_at, deleted FROM chat_session_participants WHERE chat_session_id = ? AND user_id = ?`
+	row := DB.QueryRow(query, sessionID, userID)
+
+	// result
+	csp := ChatSessionParticipant{}
+	err := row.Scan(&csp.ID, &csp.SessionID, &csp.UserID, &csp.Status, &csp.CreateAt, &csp.UpdateAt, &csp.Deleted)
+	if err != nil {
+		return nil, err
+	}
+
+	return &csp, nil
+}
+
+func (cspr *ChatSessionParticipantRepository) Create(sessionID int, userID int, status ParticipantStatus) error {
+	// query
+	query := `INSERT INTO chat_session_participants (chat_session_id, user_id, status) VALUES (?, ?, ?)`
+	_, err := DB.Exec(query, sessionID, userID, status)
 	if err != nil {
 		return err
 	}
@@ -129,6 +153,16 @@ func (cspr *ChatSessionParticipantRepository) DeleteAll(sessionID int) error {
 	// query
 	query := `DELETE FROM chat_session_participants WHERE chat_session_id = ?`
 	_, err := DB.Exec(query, sessionID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cspr *ChatSessionParticipantRepository) UpdateStatus(id int, status ParticipantStatus) error {
+	// query
+	query := `UPDATE chat_session_participants SET status = ? WHERE id = ?`
+	_, err := DB.Exec(query, status, id)
 	if err != nil {
 		return err
 	}
