@@ -15,6 +15,7 @@ var CSRFMiddleware = csrf.Protect(key,
 	csrf.HttpOnly(true),
 	csrf.ErrorHandler(http.HandlerFunc(csrfError)),
 	csrf.MaxAge(2),
+	csrf.Path("/api"),
 )
 
 func csrfError(w http.ResponseWriter, r *http.Request) {
