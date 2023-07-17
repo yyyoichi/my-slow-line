@@ -63,10 +63,10 @@ func (csr *ChatSessionRepository) Create(userID int, publicKey string, name stri
 	return nil
 }
 
-func (csr *ChatSessionRepository) DeleteAll(userID int) error {
+func (csr *ChatSessionRepository) Delete(sessionID int) error {
 	// query
-	query := `DELETE FROM chat_sessions WHERE user_id = ?`
-	_, err := DB.Exec(query, userID)
+	query := `DELETE FROM chat_sessions WHERE id = ?`
+	_, err := DB.Exec(query, sessionID)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (cspr *ChatSessionParticipantRepository) Create(sessionID int, userID int, 
 	return nil
 }
 
-func (cspr *ChatSessionParticipantRepository) DeleteAll(sessionID int) error {
+func (cspr *ChatSessionParticipantRepository) Delete(sessionID int) error {
 	// query
 	query := `DELETE FROM chat_session_participants WHERE chat_session_id = ?`
 	_, err := DB.Exec(query, sessionID)
@@ -222,7 +222,7 @@ func (cr *ChatRepository) Create(sessionID int, userID int, content string) erro
 	return nil
 }
 
-func (cr *ChatRepository) DeleteAll(sessionID int) error {
+func (cr *ChatRepository) Delete(sessionID int) error {
 	// query
 	query := `DELETE FROM chats WHERE chat_session_id = ?`
 	_, err := DB.Exec(query, sessionID)

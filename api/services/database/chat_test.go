@@ -57,8 +57,8 @@ func TestChatSession(t *testing.T) {
 		t.Errorf("Expected chat session name 'Updated Chat Session', but got '%s'", session.Name)
 	}
 
-	// Test DeleteAll method
-	err = csr.DeleteAll(testUser.Id)
+	// Test Delete method
+	err = csr.Delete(session.ID)
 	if err != nil {
 		t.Errorf("Error deleting chat sessions: %s", err.Error())
 	}
@@ -155,8 +155,8 @@ func TestChatSessionParticipant(t *testing.T) {
 		t.Errorf("Expected chat session participant status '%s', but got '%s'", Rejected, participant.Status)
 	}
 
-	// Test DeleteAll method
-	err = cspr.DeleteAll(session.ID)
+	// Test Delete method
+	err = cspr.Delete(session.ID)
 	if err != nil {
 		t.Errorf("Error deleting chat session participants: %s", err.Error())
 	}
