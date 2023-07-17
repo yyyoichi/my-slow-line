@@ -80,14 +80,15 @@ func (csr *ChatSessionRepository) UpdateName(id int, name string) error {
 	return nil
 }
 
-func (csr *ChatSessionRepository) Create(userID int, publicKey string, name string) error {
+func (csr *ChatSessionRepository) Create(userID int, publicKey string, name string) (int, error) {
 	// query
 	query := `INSERT INTO chat_sessions (user_id, public_key, name) VALUES (?, ?, ?)`
-	_, err := DB.Exec(query, userID, publicKey, name)
+	result, err := DB.Exec(query, userID, publicKey, name)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	id, err := result.LastInsertId()
+	return int(id), err
 }
 
 func (csr *ChatSessionRepository) Delete(sessionID int) error {

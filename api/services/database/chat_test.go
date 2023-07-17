@@ -17,7 +17,7 @@ func TestChatSession(t *testing.T) {
 	csr := &ChatSessionRepository{}
 
 	// Test Create method
-	err := csr.Create(testUser.Id, "public_key", "Test Chat Session")
+	_, err := csr.Create(testUser.Id, "public_key", "Test Chat Session")
 	if err != nil {
 		t.Errorf("Error creating chat session: %s", err.Error())
 	}
@@ -99,31 +99,23 @@ func TestChatSessionParticipant(t *testing.T) {
 
 	// Create a mock chat session
 	csr := &ChatSessionRepository{}
-	err := csr.Create(testUser.Id, "public_key", "Test Chat Session")
+	sessionID, err := csr.Create(testUser.Id, "public_key", "Test Chat Session")
 	if err != nil {
 		t.Fatalf("Error creating chat session: %s", err.Error())
 	}
-	sessions, err := csr.QueryByUserID(testUser.Id)
-	if err != nil {
-		t.Fatalf("Error querying chat sessions: %s", err.Error())
-	}
-	if len(sessions) != 1 {
-		t.Fatal("Expected 1 chat session, but got", len(sessions))
-	}
-	session := sessions[0]
-	defer csr.Delete(session.ID)
+	defer csr.Delete(sessionID)
 
 	// Create the ChatSessionParticipantRepository instance
 	cspr := &ChatSessionParticipantRepository{}
 
 	// Test Create method
-	err = cspr.Create(session.ID, testUser.Id, Joined)
+	err = cspr.Create(sessionID, testUser.Id, Joined)
 	if err != nil {
 		t.Errorf("Error creating chat session participant: %s", err.Error())
 	}
 
 	// Test QueryBySessionID method
-	participants, err := cspr.QueryBySessionID(session.ID)
+	participants, err := cspr.QueryBySessionID(sessionID)
 	if err != nil {
 		t.Errorf("Error querying chat session participants: %s", err.Error())
 	}
@@ -138,7 +130,7 @@ func TestChatSessionParticipant(t *testing.T) {
 	}
 
 	// Test QueryBySessionAndUser method
-	participantByID, err := cspr.QueryBySessionAndUser(session.ID, testUser.Id)
+	participantByID, err := cspr.QueryBySessionAndUser(sessionID, testUser.Id)
 	if err != nil {
 		t.Errorf("Error querying chat session participant by session and user: %s", err.Error())
 	}
@@ -158,7 +150,7 @@ func TestChatSessionParticipant(t *testing.T) {
 	}
 
 	// Verify updated status
-	participants, err = cspr.QueryBySessionID(session.ID)
+	participants, err = cspr.QueryBySessionID(sessionID)
 	if err != nil {
 		t.Errorf("Error querying chat session participants: %s", err.Error())
 	}
@@ -173,13 +165,13 @@ func TestChatSessionParticipant(t *testing.T) {
 	}
 
 	// Test Delete method
-	err = cspr.Delete(session.ID)
+	err = cspr.Delete(sessionID)
 	if err != nil {
 		t.Errorf("Error deleting chat session participants: %s", err.Error())
 	}
 
 	// Verify that all chat session participants have been deleted
-	participants, err = cspr.QueryBySessionID(session.ID)
+	participants, err = cspr.QueryBySessionID(sessionID)
 	if err != nil {
 		t.Errorf("Error querying chat session participants: %s", err.Error())
 	}
@@ -198,7 +190,7 @@ func TestChat(t *testing.T) {
 
 	// Create a mock chat session
 	csr := &ChatSessionRepository{}
-	err := csr.Create(testUser.Id, "public_key", "Test Chat Session")
+	_, err := csr.Create(testUser.Id, "public_key", "Test Chat Session")
 	if err != nil {
 		t.Fatalf("Error creating chat session: %s", err.Error())
 	}
