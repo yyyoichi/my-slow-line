@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -16,7 +17,7 @@ type ChatSession struct {
 
 type ChatSessionRepository struct{}
 
-func (csr *ChatSessionRepository) Query(sessionID int) ([]ChatSession, error) {
+func (csr *ChatSessionRepository) Query(tx *sql.Tx, sessionID int) ([]ChatSession, error) {
 	// query
 	query := `SELECT id, user_id, public_key, name, create_at, update_at, deleted FROM chat_sessions WHERE id = ?`
 	rows, err := DB.Query(query, sessionID)
@@ -43,7 +44,7 @@ func (csr *ChatSessionRepository) Query(sessionID int) ([]ChatSession, error) {
 	return results, nil
 }
 
-func (csr *ChatSessionRepository) QueryByUserID(userID int) ([]ChatSession, error) {
+func (csr *ChatSessionRepository) QueryByUserID(tx *sql.Tx, userID int) ([]ChatSession, error) {
 	// query
 	query := `SELECT id, user_id, public_key, name, create_at, update_at, deleted FROM chat_sessions WHERE user_id = ?`
 	rows, err := DB.Query(query, userID)
@@ -70,7 +71,7 @@ func (csr *ChatSessionRepository) QueryByUserID(userID int) ([]ChatSession, erro
 	return results, nil
 }
 
-func (csr *ChatSessionRepository) UpdateName(id int, name string) error {
+func (csr *ChatSessionRepository) UpdateName(tx *sql.Tx, id int, name string) error {
 	// query
 	query := `UPDATE chat_sessions SET name = ?, update_at = NOW() WHERE id = ?`
 	_, err := DB.Exec(query, name, id)
@@ -80,7 +81,7 @@ func (csr *ChatSessionRepository) UpdateName(id int, name string) error {
 	return nil
 }
 
-func (csr *ChatSessionRepository) Create(userID int, publicKey string, name string) (int, error) {
+func (csr *ChatSessionRepository) Create(tx *sql.Tx, userID int, publicKey string, name string) (int, error) {
 	// query
 	query := `INSERT INTO chat_sessions (user_id, public_key, name) VALUES (?, ?, ?)`
 	result, err := DB.Exec(query, userID, publicKey, name)
@@ -91,7 +92,7 @@ func (csr *ChatSessionRepository) Create(userID int, publicKey string, name stri
 	return int(id), err
 }
 
-func (csr *ChatSessionRepository) Delete(sessionID int) error {
+func (csr *ChatSessionRepository) Delete(tx *sql.Tx, sessionID int) error {
 	// query
 	query := `DELETE FROM chat_sessions WHERE id = ?`
 	_, err := DB.Exec(query, sessionID)
@@ -125,7 +126,7 @@ const (
 
 type ChatSessionParticipantRepository struct{}
 
-func (cspr *ChatSessionParticipantRepository) QueryBySessionID(sessionID int) ([]ChatSessionParticipant, error) {
+func (cspr *ChatSessionParticipantRepository) QueryBySessionID(tx *sql.Tx, sessionID int) ([]ChatSessionParticipant, error) {
 	// query
 	query := `SELECT id, chat_session_id, user_id, status, create_at, update_at, deleted FROM chat_session_participants WHERE chat_session_id = ?`
 	rows, err := DB.Query(query, sessionID)
@@ -152,7 +153,7 @@ func (cspr *ChatSessionParticipantRepository) QueryBySessionID(sessionID int) ([
 	return results, nil
 }
 
-func (cspr *ChatSessionParticipantRepository) QueryBySessionAndUser(sessionID int, userID int) (*ChatSessionParticipant, error) {
+func (cspr *ChatSessionParticipantRepository) QueryBySessionAndUser(tx *sql.Tx, sessionID int, userID int) (*ChatSessionParticipant, error) {
 	// query
 	query := `SELECT id, chat_session_id, user_id, status, create_at, update_at, deleted FROM chat_session_participants WHERE chat_session_id = ? AND user_id = ?`
 	row := DB.QueryRow(query, sessionID, userID)
@@ -167,7 +168,7 @@ func (cspr *ChatSessionParticipantRepository) QueryBySessionAndUser(sessionID in
 	return &csp, nil
 }
 
-func (cspr *ChatSessionParticipantRepository) Create(sessionID int, userID int, status ParticipantStatus) error {
+func (cspr *ChatSessionParticipantRepository) Create(tx *sql.Tx, sessionID int, userID int, status ParticipantStatus) error {
 	// query
 	query := `INSERT INTO chat_session_participants (chat_session_id, user_id, status) VALUES (?, ?, ?)`
 	_, err := DB.Exec(query, sessionID, userID, status)
@@ -177,7 +178,7 @@ func (cspr *ChatSessionParticipantRepository) Create(sessionID int, userID int, 
 	return nil
 }
 
-func (cspr *ChatSessionParticipantRepository) Delete(sessionID int) error {
+func (cspr *ChatSessionParticipantRepository) Delete(tx *sql.Tx, sessionID int) error {
 	// query
 	query := `DELETE FROM chat_session_participants WHERE chat_session_id = ?`
 	_, err := DB.Exec(query, sessionID)
@@ -187,7 +188,7 @@ func (cspr *ChatSessionParticipantRepository) Delete(sessionID int) error {
 	return nil
 }
 
-func (cspr *ChatSessionParticipantRepository) UpdateStatus(id int, status ParticipantStatus) error {
+func (cspr *ChatSessionParticipantRepository) UpdateStatus(tx *sql.Tx, id int, status ParticipantStatus) error {
 	// query
 	query := `UPDATE chat_session_participants SET status = ? WHERE id = ?`
 	_, err := DB.Exec(query, status, id)
@@ -213,7 +214,7 @@ type Chat struct {
 
 type ChatRepository struct{}
 
-func (cr *ChatRepository) QueryBySessionID(sessionID int) ([]Chat, error) {
+func (cr *ChatRepository) QueryBySessionID(tx *sql.Tx, sessionID int) ([]Chat, error) {
 	// query
 	query := `SELECT id, chat_session_id, user_id, content, create_at, update_at, deleted FROM chats WHERE chat_session_id = ?`
 	rows, err := DB.Query(query, sessionID)
@@ -243,7 +244,7 @@ func (cr *ChatRepository) QueryBySessionID(sessionID int) ([]Chat, error) {
 // QueryByUserIDAndTimeRange retrieves chat messages created within a specified time range for a given user ID.
 // It takes the userID as the ID of the user to query, endTime as the upper limit of the time range.
 // The function returns a slice of Chat structs representing the retrieved messages, or an error if the query fails.
-func (cr *ChatRepository) QueryByUserIDAndTimeRange(userID int, endTime time.Time) ([]Chat, error) {
+func (cr *ChatRepository) QueryByUserIDAndTimeRange(tx *sql.Tx, userID int, endTime time.Time) ([]Chat, error) {
 	startTime := time.Now().Add(-24 * time.Hour)
 
 	// query
@@ -277,7 +278,7 @@ func (cr *ChatRepository) QueryByUserIDAndTimeRange(userID int, endTime time.Tim
 	return results, nil
 }
 
-func (cr *ChatRepository) Create(sessionID int, userID int, content string) error {
+func (cr *ChatRepository) Create(tx *sql.Tx, sessionID int, userID int, content string) error {
 	// query
 	query := `INSERT INTO chats (chat_session_id, user_id, content) VALUES (?, ?, ?)`
 	_, err := DB.Exec(query, sessionID, userID, content)
@@ -287,7 +288,7 @@ func (cr *ChatRepository) Create(sessionID int, userID int, content string) erro
 	return nil
 }
 
-func (cr *ChatRepository) Delete(sessionID int) error {
+func (cr *ChatRepository) Delete(tx *sql.Tx, sessionID int) error {
 	// query
 	query := `DELETE FROM chats WHERE chat_session_id = ?`
 	_, err := DB.Exec(query, sessionID)
@@ -297,7 +298,7 @@ func (cr *ChatRepository) Delete(sessionID int) error {
 	return nil
 }
 
-func (cr *ChatRepository) DeleteBySessionAndUser(sessionID int, userID int) error {
+func (cr *ChatRepository) DeleteBySessionAndUser(tx *sql.Tx, sessionID int, userID int) error {
 	// query
 	query := `DELETE FROM chats WHERE chat_session_id = ? AND user_id = ?`
 	_, err := DB.Exec(query, sessionID, userID)
