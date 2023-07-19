@@ -16,6 +16,13 @@ type ChatSession struct {
 }
 
 type ChatSessionRepository struct{}
+type ChatSessionRepositoryInterface interface {
+	Query(tx *sql.Tx, sessionID int) (*ChatSession, error)
+	QueryByUserID(tx *sql.Tx, userID int) ([]ChatSession, error)
+	UpdateName(tx *sql.Tx, id int, name string) error
+	Create(tx *sql.Tx, userID int, publicKey string, name string) (int, error)
+	Delete(tx *sql.Tx, sessionID int) error
+}
 
 func (csr *ChatSessionRepository) Query(tx *sql.Tx, sessionID int) (*ChatSession, error) {
 	// query
@@ -26,12 +33,9 @@ func (csr *ChatSessionRepository) Query(tx *sql.Tx, sessionID int) (*ChatSession
 	result := &ChatSession{}
 	err := row.Scan(&result.ID, &result.UserID, &result.PublicKey, &result.Name, &result.CreateAt, &result.UpdateAt, &result.Deleted)
 	if err != nil {
-			return nil, err
+		if err == sql.ErrNoRows {
+			return nil, nil // No rows found, return nil without an error.
 		}
-		results = append(results, cs)
-	}
-
-	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
@@ -119,6 +123,14 @@ const (
 )
 
 type ChatSessionParticipantRepository struct{}
+type ChatSessionParticipantRepositoryInterface interface {
+	QueryBySessionID(tx *sql.Tx, sessionID int) ([]ChatSessionParticipant, error)
+	QueryBySessionAndUser(tx *sql.Tx, sessionID int, userID int) (*ChatSessionParticipant, error)
+	QueryInvitedByUserID(tx *sql.Tx, userID int) ([]ChatSessionParticipant, error)
+	Create(tx *sql.Tx, sessionID int, userID, inviteUserID int, status ParticipantStatus) error
+	Delete(tx *sql.Tx, sessionID int) error
+	UpdateStatus(tx *sql.Tx, id int, status ParticipantStatus) error
+}
 
 func (cspr *ChatSessionParticipantRepository) QueryBySessionID(tx *sql.Tx, sessionID int) ([]ChatSessionParticipant, error) {
 	// query
@@ -189,8 +201,8 @@ func (cspr *ChatSessionParticipantRepository) QueryInvitedByUserID(tx *sql.Tx, u
 // [invite_user_id] is ID of the user invited to the session
 func (cspr *ChatSessionParticipantRepository) Create(tx *sql.Tx, sessionID int, userID, inviteUserID int, status ParticipantStatus) error {
 	// query
-	query := `INSERT INTO chat_session_participants (chat_session_id, user_id, status) VALUES (?, ?, ?)`
-	_, err := DB.Exec(query, sessionID, userID, status)
+	query := `INSERT INTO chat_session_participants (chat_session_id, user_id, invite_user_id, status) VALUES (?, ?, ?, ?)`
+	_, err := DB.Exec(query, sessionID, userID, inviteUserID, status)
 	if err != nil {
 		return err
 	}
@@ -232,6 +244,13 @@ type Chat struct {
 }
 
 type ChatRepository struct{}
+type ChatRepositoryInterface interface {
+	QueryBySessionID(tx *sql.Tx, sessionID int) ([]Chat, error)
+	QueryByUserIDAndTimeRange(tx *sql.Tx, userID int, endTime time.Time) ([]Chat, error)
+	Create(tx *sql.Tx, sessionID int, userID int, content string) error
+	Delete(tx *sql.Tx, sessionID int) error
+	DeleteBySessionAndUser(tx *sql.Tx, sessionID int, userID int) error
+}
 
 func (cr *ChatRepository) QueryBySessionID(tx *sql.Tx, sessionID int) ([]Chat, error) {
 	// query
