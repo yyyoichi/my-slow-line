@@ -40,3 +40,27 @@ func GetDatabase() (*sql.DB, error) {
 	}
 	return db, err
 }
+
+func WithTransaction(fn func(tx *sql.Tx) error) error {
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := fn(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
+}
