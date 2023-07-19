@@ -48,18 +48,13 @@ func TestChatSession(t *testing.T) {
 	}
 
 	// Test Query method
-	sessions, err = csr.Query(tx, session.ID)
+	sessionQ, err := csr.Query(tx, session.ID)
 	if err != nil {
 		t.Errorf("Error querying chat sessions: %s", err.Error())
 	}
 
-	if len(sessions) != 1 {
-		t.Error("Expected 1 chat session, but got", len(sessions))
-	}
-
-	session = sessions[0]
-	if session.Name != "Test Chat Session" {
-		t.Errorf("Expected chat session name 'Test Chat Session', but got '%s'", session.Name)
+	if sessionQ.Name != "Test Chat Session" {
+		t.Errorf("Expected chat session name 'Test Chat Session', but got '%s'", sessionQ.Name)
 	}
 
 	// Test UpdateName method
@@ -135,7 +130,7 @@ func TestChatSessionParticipant(t *testing.T) {
 	cspr := &ChatSessionParticipantRepository{}
 
 	// Test Create method
-	err = cspr.Create(tx, sessionID, testUser.Id, Joined)
+	err = cspr.Create(tx, sessionID, testUser.Id, testUser.Id, Joined)
 	if err != nil {
 		t.Errorf("Error creating chat session participant: %s", err.Error())
 	}
@@ -170,7 +165,7 @@ func TestChatSessionParticipant(t *testing.T) {
 	}
 
 	// Test UpdateStatus method
-	err = cspr.UpdateStatus(tx, participant.ID, Rejected)
+	err = cspr.UpdateStatus(tx, participant.ID, Invited)
 	if err != nil {
 		t.Errorf("Error updating chat session participant status: %s", err.Error())
 	}
@@ -186,8 +181,26 @@ func TestChatSessionParticipant(t *testing.T) {
 	}
 
 	participant = participants[0]
-	if participant.Status != Rejected {
+	if participant.Status != Invited {
 		t.Errorf("Expected chat session participant status '%s', but got '%s'", Rejected, participant.Status)
+	}
+
+	// Test QueryBySessionAndUser method
+	participantByIDs, err := cspr.QueryInvitedByUserID(tx, testUser.Id)
+	if err != nil {
+		t.Errorf("Error querying chat session participant by user: %s", err.Error())
+	}
+	if len(participantByIDs) != 1 {
+		t.Error("Expected 0 chat session participants, but got", len(participantByIDs))
+	}
+
+	participantByID = &participantByIDs[0]
+	if participantByID == nil {
+		t.Error("Expected chat session participant, but got nil")
+	} else {
+		if participantByID.UserID != testUser.Id {
+			t.Errorf("Expected chat session participant user ID '%d', but got '%d'", testUser.Id, participantByID.UserID)
+		}
 	}
 
 	// Test Delete method

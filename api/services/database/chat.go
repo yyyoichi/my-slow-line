@@ -17,21 +17,15 @@ type ChatSession struct {
 
 type ChatSessionRepository struct{}
 
-func (csr *ChatSessionRepository) Query(tx *sql.Tx, sessionID int) ([]ChatSession, error) {
+func (csr *ChatSessionRepository) Query(tx *sql.Tx, sessionID int) (*ChatSession, error) {
 	// query
 	query := `SELECT id, user_id, public_key, name, create_at, update_at, deleted FROM chat_sessions WHERE id = ?`
-	rows, err := DB.Query(query, sessionID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	row := tx.QueryRow(query, sessionID)
 
-	// results
-	var results []ChatSession
-	for rows.Next() {
-		cs := ChatSession{}
-		err := rows.Scan(&cs.ID, &cs.UserID, &cs.PublicKey, &cs.Name, &cs.CreateAt, &cs.UpdateAt, &cs.Deleted)
-		if err != nil {
+	// result
+	result := &ChatSession{}
+	err := row.Scan(&result.ID, &result.UserID, &result.PublicKey, &result.Name, &result.CreateAt, &result.UpdateAt, &result.Deleted)
+	if err != nil {
 			return nil, err
 		}
 		results = append(results, cs)
@@ -41,7 +35,7 @@ func (csr *ChatSessionRepository) Query(tx *sql.Tx, sessionID int) ([]ChatSessio
 		return nil, err
 	}
 
-	return results, nil
+	return result, nil
 }
 
 func (csr *ChatSessionRepository) QueryByUserID(tx *sql.Tx, userID int) ([]ChatSession, error) {
@@ -168,7 +162,32 @@ func (cspr *ChatSessionParticipantRepository) QueryBySessionAndUser(tx *sql.Tx, 
 	return &csp, nil
 }
 
-func (cspr *ChatSessionParticipantRepository) Create(tx *sql.Tx, sessionID int, userID int, status ParticipantStatus) error {
+func (cspr *ChatSessionParticipantRepository) QueryInvitedByUserID(tx *sql.Tx, userID int) ([]ChatSessionParticipant, error) {
+	// query
+	query := `SELECT id, chat_session_id, user_id, status, create_at, update_at, deleted 
+	FROM chat_session_participants 
+	WHERE user_id = ?
+		AND status = 'invited'`
+	rows, err := DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// result
+	var results []ChatSessionParticipant
+	for rows.Next() {
+		csp := ChatSessionParticipant{}
+		err := rows.Scan(&csp.ID, &csp.SessionID, &csp.UserID, &csp.Status, &csp.CreateAt, &csp.UpdateAt, &csp.Deleted)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, csp)
+	}
+	return results, nil
+}
+
+// [invite_user_id] is ID of the user invited to the session
+func (cspr *ChatSessionParticipantRepository) Create(tx *sql.Tx, sessionID int, userID, inviteUserID int, status ParticipantStatus) error {
 	// query
 	query := `INSERT INTO chat_session_participants (chat_session_id, user_id, status) VALUES (?, ?, ?)`
 	_, err := DB.Exec(query, sessionID, userID, status)
