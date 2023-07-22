@@ -40,7 +40,7 @@ func TestFriendRecruit(t *testing.T) {
 	}
 	for i, tt := range test {
 		service := u.GetFriendRecruitService(tt.userId)
-		if err = service.UpdateMessageAt(uuid, ""); err != tt.err {
+		if err = service.UpdateAt(uuid, "", false); err != tt.err {
 			t.Errorf("%d: expcted error is '%s' but got='%s'", i, tt.err, err)
 		}
 	}

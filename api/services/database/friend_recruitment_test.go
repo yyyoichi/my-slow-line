@@ -39,7 +39,7 @@ func TestFriendRecruitment(t *testing.T) {
 
 	updateMessage := "Hello"
 	// update
-	if err = frRepository.UpdateMessage(uuid, updateMessage); err != nil {
+	if err = frRepository.Update(uuid, updateMessage, true); err != nil {
 		t.Error(err)
 	}
 	// get
@@ -55,6 +55,9 @@ func TestFriendRecruitment(t *testing.T) {
 	fr = frs[0]
 	if fr.Message != updateMessage {
 		t.Errorf("expected message is '%s' but got='%s'", updateMessage, fr.Message)
+	}
+	if fr.Deleted != true {
+		t.Errorf("expected message is 'true' but got='%v'", fr.Deleted)
 	}
 
 	// delete

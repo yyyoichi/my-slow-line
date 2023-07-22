@@ -43,10 +43,14 @@ func (fr *FRecruitmentRepository) QueryByUserId(userId int) ([]TFRecruitment, er
 	return results, nil
 }
 
-func (fr *FRecruitmentRepository) UpdateMessage(uuid string, message string) error {
+func (fr *FRecruitmentRepository) Update(uuid string, message string, deleted bool) error {
+	deletedFlg := 0
+	if deleted {
+		deletedFlg = 1
+	}
 	// query
-	s := `UPDATE friend_recruitment SET message = ? WHERE uuid = ? `
-	_, err := DB.Exec(s, message, uuid)
+	s := `UPDATE friend_recruitment SET message = ?, deleted = ? WHERE uuid = ? `
+	_, err := DB.Exec(s, message, deletedFlg, uuid)
 	if err != nil {
 		return err
 	}
