@@ -173,7 +173,7 @@ func (u *UsersService) GetFriendRecruitService(userId int) FriendRecruitService 
 }
 
 func (f *FriendRecruitService) Query() ([]database.TFRecruitment, error) {
-	repository := database.FRecruitmentRepository{}
+	repository := f.FRecruitmentRepo
 	recruits, err := repository.QueryByUserId(f.UserId)
 	if err != nil {
 		return nil, err
@@ -199,7 +199,7 @@ func (f *FriendRecruitService) UpdateAt(uuid, message string, deleted bool) erro
 	}
 
 	// update
-	repository := database.FRecruitmentRepository{}
+	repository := f.FRecruitmentRepo
 	err = repository.Update(uuid, message, deleted)
 	if err != nil {
 		return err
@@ -210,7 +210,7 @@ func (f *FriendRecruitService) UpdateAt(uuid, message string, deleted bool) erro
 
 func (f *FriendRecruitService) Create(message string) error {
 	uuid := googleUuid.NewString()
-	repository := database.FRecruitmentRepository{}
+	repository := f.FRecruitmentRepo
 	if err := repository.Create(f.UserId, uuid, message); err != nil {
 		return err
 	}
@@ -218,7 +218,7 @@ func (f *FriendRecruitService) Create(message string) error {
 }
 
 func (f *FriendRecruitService) DeleteHard() error {
-	repository := database.FRecruitmentRepository{}
+	repository := f.FRecruitmentRepo
 	if err := repository.DeleteAll(f.UserId); err != nil {
 		return err
 	}

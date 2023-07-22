@@ -6,6 +6,10 @@ type MockFRecruitmentRepository struct {
 	RecruitmentByID map[int][]TFRecruitment
 }
 
+func NewMockFRecruitmentRepository() *MockFRecruitmentRepository {
+	return &MockFRecruitmentRepository{make(map[int][]TFRecruitment)}
+}
+
 // QueryByUserId is a mock method to retrieve the Recruitment information corresponding to a specified user ID.
 func (m *MockFRecruitmentRepository) QueryByUserId(userId int) ([]TFRecruitment, error) {
 	if recruitments, ok := m.RecruitmentByID[userId]; ok {
