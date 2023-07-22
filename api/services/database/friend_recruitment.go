@@ -2,6 +2,13 @@ package database
 
 import "time"
 
+type FRecruitmentRepositoryInterface interface {
+	QueryByUserId(userId int) ([]TFRecruitment, error)
+	Update(uuid string, message string, deleted bool) error
+	Create(userId int, uuid, message string) error
+	DeleteAll(userId int) error
+}
+
 type FRecruitmentRepository struct{}
 
 type TFRecruitment struct {
