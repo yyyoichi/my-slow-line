@@ -42,10 +42,12 @@ func handler() {
 	api.HandleFunc("/signin", ah.SigninHandler).Methods(http.MethodPost)
 	api.HandleFunc("/login", ah.LoginHandler).Methods(http.MethodPost)
 	api.HandleFunc("/codein", ah.VerificateHandler).Methods(http.MethodPost)
+	api.HandleFunc("/recruitments/:recruitmentUUID", NotFoundHandler).Methods(http.MethodGet)
 
 	me := api.PathPrefix("/me").Subrouter()
 	me.HandleFunc("/", handlers.MeHandler).Methods(http.MethodGet)
 	me.HandleFunc("/logout", handlers.LogoutHandler).Methods(http.MethodPost)
+	me.HandleFunc("/recruitments", NotFoundHandler).Methods(http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete)
 	me.Use(middleware.AuthMiddleware)
 
 	wp := me.PathPrefix("/webpush").Subrouter()
