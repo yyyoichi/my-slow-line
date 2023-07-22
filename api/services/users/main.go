@@ -164,11 +164,12 @@ func (u *UsersService) SoftDelete(userId int) error {
 }
 
 type FriendRecruitService struct {
-	UserId int
+	UserId           int
+	FRecruitmentRepo database.FRecruitmentRepositoryInterface
 }
 
 func (u *UsersService) GetFriendRecruitService(userId int) FriendRecruitService {
-	return FriendRecruitService{UserId: userId}
+	return FriendRecruitService{userId, &database.FRecruitmentRepository{}}
 }
 
 func (f *FriendRecruitService) Query() ([]database.TFRecruitment, error) {
@@ -180,7 +181,7 @@ func (f *FriendRecruitService) Query() ([]database.TFRecruitment, error) {
 	return recruits, nil
 }
 
-func (f *FriendRecruitService) UpdateMessageAt(uuid, message string) error {
+func (f *FriendRecruitService) UpdateAt(uuid, message string, deleted bool) error {
 	// has uuid in user
 	recruits, err := f.Query()
 	if err != nil {
@@ -199,7 +200,7 @@ func (f *FriendRecruitService) UpdateMessageAt(uuid, message string) error {
 
 	// update
 	repository := database.FRecruitmentRepository{}
-	err = repository.UpdateMessage(uuid, message)
+	err = repository.Update(uuid, message, deleted)
 	if err != nil {
 		return err
 	}
