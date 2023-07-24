@@ -54,6 +54,11 @@ func handler() {
 	wp.HandleFunc("/vapid_public_key", handlers.VapidHandler).Methods(http.MethodGet)
 	wp.HandleFunc("/subscription", handlers.PushSubscriptionHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
 
+	ses := me.PathPrefix("/sessions").Subrouter()
+	ses.HandleFunc("", NotFoundHandler).Methods(http.MethodGet, http.MethodPost)
+	ses.HandleFunc("/:sessionID/participants", NotFoundHandler).Methods(http.MethodPost)
+	ses.HandleFunc("/:sessionID", NotFoundHandler).Methods(http.MethodGet, http.MethodPut)
+
 	api.Use(middleware.CROSMiddleware)
 	api.Use(middleware.CSRFMiddleware)
 
