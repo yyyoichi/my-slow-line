@@ -35,7 +35,16 @@ func (cs *ChatService) CreateChatSession(publicKey, name string, invitedUsers []
 		if err != nil {
 			return err
 		}
-		return cs.InviteParticipant(sessionID, invitedUsers)
+		users := []participantTUser{
+			{
+				userID: cs.UserID,
+				status: database.Joined,
+			},
+		}
+		for _, userID := range invitedUsers {
+			users = append(users, participantTUser{userID, database.Invited})
+		}
+		return cs.addParticipant(tx, sessionID, users)
 	})
 }
 
@@ -83,27 +92,45 @@ func (cs *ChatService) InviteParticipant(sessionID int, invitedUsers []int) erro
 		return ErrCannotAccess
 	}
 	return database.WithTransaction(func(tx *sql.Tx) error {
+		users := []participantTUser{}
 		for _, invited := range invitedUsers {
-			participant, err := cs.ChatSessionParticipantRepo.QueryBySessionAndUser(tx, sessionID, invited)
+			user := participantTUser{
+				userID: invited,
+				status: database.Invited,
+			}
+			users = append(users, user)
+		}
+		cs.addParticipant(tx, sessionID, users)
+		return nil
+	})
+}
+
+type participantTUser struct {
+	userID int
+	status database.ParticipantStatus
+}
+
+func (cs *ChatService) addParticipant(tx *sql.Tx, sessionID int, users []participantTUser) error {
+	for _, user := range users {
+		participant, err := cs.ChatSessionParticipantRepo.QueryBySessionAndUser(tx, sessionID, user.userID)
+		if err != nil {
+			return err
+		}
+		if participant != nil {
+			// Participant already exists, update the status to ""
+			err = cs.ChatSessionParticipantRepo.UpdateStatus(tx, participant.ID, user.status)
 			if err != nil {
 				return err
 			}
-			if participant != nil {
-				// Participant already exists, update the status to "invited"
-				err = cs.ChatSessionParticipantRepo.UpdateStatus(tx, participant.ID, database.Invited)
-				if err != nil {
-					return err
-				}
-			} else {
-				// Participant does not exist, create a new participant with status "invited"
-				err = cs.ChatSessionParticipantRepo.Create(tx, sessionID, invited, cs.UserID, database.Invited)
-				if err != nil {
-					return err
-				}
+		} else {
+			// Participant does not exist, create a new participant with status ""
+			err = cs.ChatSessionParticipantRepo.Create(tx, sessionID, user.userID, cs.UserID, user.status)
+			if err != nil {
+				return err
 			}
 		}
-		return nil
-	})
+	}
+	return nil
 }
 
 // AcceptInvitation accepts an invitation to join a chat session.
@@ -167,6 +194,17 @@ func (cs *ChatService) SendMessage(sessionID int, content string) error {
 	})
 }
 
+// GetInvitedByUserID retrieves a chat session by its ID.
+func (cs *ChatService) GetInvitedJoinedByUserID(userID int) ([]database.ChatSessionParticipant, error) {
+	var chatSessionParticipant []database.ChatSessionParticipant
+	err := database.WithTransaction(func(tx *sql.Tx) error {
+		var err error
+		chatSessionParticipant, err = cs.ChatSessionParticipantRepo.QueryInvitedJoinedByUserID(tx, userID)
+		return err
+	})
+	return chatSessionParticipant, err
+}
+
 // GetChatSessionByID retrieves a chat session by its ID.
 func (cs *ChatService) GetChatSessionByID(sessionID int) (*database.ChatSession, error) {
 	if enable, err := cs.enableSessionAccess(sessionID); !enable || err != nil {
@@ -183,13 +221,16 @@ func (cs *ChatService) GetChatSessionByID(sessionID int) (*database.ChatSession,
 
 // GetChatSessionParticipantBySessionID retrieves a chat session participant by its sessionID.
 func (cs *ChatService) GetChatSessionParticipantBySessionID(sessionID int) ([]database.ChatSessionParticipant, error) {
-	if enable, err := cs.enableSessionAccess(sessionID); !enable || err != nil {
-		return nil, ErrCannotAccess
-	}
 	var chatSessionParticipant []database.ChatSessionParticipant
 	err := database.WithTransaction(func(tx *sql.Tx) error {
 		var err error
 		chatSessionParticipant, err = cs.ChatSessionParticipantRepo.QueryBySessionID(tx, sessionID)
+		if err != nil {
+			return err
+		}
+		if ok := cs.incluedPartipants(chatSessionParticipant); !ok {
+			return ErrCannotAccess
+		}
 		return err
 	})
 	return chatSessionParticipant, err
@@ -224,15 +265,19 @@ func (cs *ChatService) GetChatMessagesByTimeRange(endTime time.Time) ([]database
 // check access right
 // true if user is join the session of [sessionID].
 func (cs *ChatService) enableSessionAccess(sessionID int) (bool, error) {
-	include := false
 	participants, err := cs.GetChatSessionParticipantBySessionID(sessionID)
 	if err != nil {
 		return false, err
 	}
+	return cs.incluedPartipants(participants), nil
+}
+
+func (cs *ChatService) incluedPartipants(participants []database.ChatSessionParticipant) bool {
+	include := false
 	for _, pt := range participants {
 		if pt.UserID == cs.UserID && pt.Status == database.Joined {
 			include = true
 		}
 	}
-	return include, nil
+	return include
 }
