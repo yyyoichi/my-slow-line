@@ -83,7 +83,7 @@ func NewMockChatSessionParticipantRepository() *MockChatSessionParticipantReposi
 func (m *MockChatSessionParticipantRepository) QueryBySessionID(tx *sql.Tx, sessionID int) ([]ChatSessionParticipant, error) {
 	participants, found := m.ParticipantsBySessionID[sessionID]
 	if !found {
-		return nil, sql.ErrNoRows
+		return nil, nil
 	}
 	return participants, nil
 }
@@ -91,7 +91,7 @@ func (m *MockChatSessionParticipantRepository) QueryBySessionID(tx *sql.Tx, sess
 func (m *MockChatSessionParticipantRepository) QueryBySessionAndUser(tx *sql.Tx, sessionID, userID int) (*ChatSessionParticipant, error) {
 	participants, found := m.ParticipantsBySessionID[sessionID]
 	if !found {
-		return nil, sql.ErrNoRows
+		return nil, nil
 	}
 
 	for _, participant := range participants {
@@ -100,13 +100,13 @@ func (m *MockChatSessionParticipantRepository) QueryBySessionAndUser(tx *sql.Tx,
 		}
 	}
 
-	return nil, sql.ErrNoRows
+	return nil, nil
 }
 
-func (m *MockChatSessionParticipantRepository) QueryInvitedByUserID(tx *sql.Tx, userID int) ([]ChatSessionParticipant, error) {
+func (m *MockChatSessionParticipantRepository) QueryInvitedJoinedByUserID(tx *sql.Tx, userID int) ([]ChatSessionParticipant, error) {
 	participant, found := m.ParticipantsByUserID[userID]
 	if !found {
-		return nil, sql.ErrNoRows
+		return nil, nil
 	}
 	return []ChatSessionParticipant{*participant}, nil
 }
@@ -170,8 +170,8 @@ func (m *MockChatRepository) QueryBySessionID(tx *sql.Tx, sessionID int) ([]Chat
 }
 
 func (m *MockChatRepository) QueryByUserIDAndTimeRange(tx *sql.Tx, userID int, endTime time.Time) ([]Chat, error) {
-	// Implement the mock behavior here (return predefined data for testing)
-	return nil, nil
+	chats := m.ChatsByUserID[userID]
+	return chats, nil
 }
 
 func (m *MockChatRepository) Create(tx *sql.Tx, sessionID int, userID int, content string) error {

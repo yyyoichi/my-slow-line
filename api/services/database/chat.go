@@ -126,7 +126,7 @@ type ChatSessionParticipantRepository struct{}
 type ChatSessionParticipantRepositoryInterface interface {
 	QueryBySessionID(tx *sql.Tx, sessionID int) ([]ChatSessionParticipant, error)
 	QueryBySessionAndUser(tx *sql.Tx, sessionID int, userID int) (*ChatSessionParticipant, error)
-	QueryInvitedByUserID(tx *sql.Tx, userID int) ([]ChatSessionParticipant, error)
+	QueryInvitedJoinedByUserID(tx *sql.Tx, userID int) ([]ChatSessionParticipant, error)
 	Create(tx *sql.Tx, sessionID int, userID, inviteUserID int, status ParticipantStatus) error
 	Delete(tx *sql.Tx, sessionID int) error
 	UpdateStatus(tx *sql.Tx, id int, status ParticipantStatus) error
@@ -174,12 +174,12 @@ func (cspr *ChatSessionParticipantRepository) QueryBySessionAndUser(tx *sql.Tx, 
 	return &csp, nil
 }
 
-func (cspr *ChatSessionParticipantRepository) QueryInvitedByUserID(tx *sql.Tx, userID int) ([]ChatSessionParticipant, error) {
+func (cspr *ChatSessionParticipantRepository) QueryInvitedJoinedByUserID(tx *sql.Tx, userID int) ([]ChatSessionParticipant, error) {
 	// query
 	query := `SELECT id, chat_session_id, user_id, status, create_at, update_at, deleted 
 	FROM chat_session_participants 
 	WHERE user_id = ?
-		AND status = 'invited'`
+		AND ( status = 'invited' OR status = 'joined' )`
 	rows, err := DB.Query(query, userID)
 	if err != nil {
 		return nil, err
@@ -289,7 +289,11 @@ func (cr *ChatRepository) QueryByUserIDAndTimeRange(tx *sql.Tx, userID int, endT
 	query := `
 	SELECT id, chat_session_id, user_id, content, create_at, update_at, deleted 
 	FROM chats 
-	WHERE user_id = ?
+	WHERE chat_session_id IN (
+		SELECT chat_session_id FROM chat_session_participants
+		WHERE user_id = ?
+		AND ( status = 'invited' OR status = 'joined' )
+	)
 		AND create_at >= ? 
 		AND create_at <= ?`
 	rows, err := DB.Query(query, userID, startTime, endTime)
