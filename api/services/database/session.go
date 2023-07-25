@@ -28,6 +28,7 @@ type SessionRepositoryInterface interface {
 	HasStatusAt(tx *sql.Tx, sessionID, userID int, inStatus []TParticipantStatus) (bool, error)
 	Create(tx *sql.Tx, userID int, publicKey string, name string) (int, error)
 	UpdateName(tx *sql.Tx, id int, name string) error
+	UpdateStatus(tx *sql.Tx, id int, status TSessionStatus) error
 	HardDelete(tx *sql.Tx, sessionID int) error
 	SoftDelete(tx *sql.Tx, sessionID int) error
 	HardDeleteAll(tx *sql.Tx, sessionID int) error
@@ -290,6 +291,7 @@ type SessionChatRepository struct{}
 type SessionChatRepositoryInterface interface {
 	Create(tx *sql.Tx, sessionID, userID int, content string) (int, error)
 	QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*Chat, error)
+	HardDelete(tx *sql.Tx, chatID int) error
 }
 
 type TQuerySessionChat struct {
