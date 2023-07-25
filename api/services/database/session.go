@@ -197,7 +197,7 @@ func (sr *SessionRepository) HardDeleteAll(tx *sql.Tx, sessionID int) error {
 
 type SessionParticipantRepository struct{}
 type SessionParticipantRepositoryInterface interface {
-	QueryBySessionID(tx *sql.Tx, sessionID int) ([]TSessionParticipant, error)
+	QueryBySessionID(tx *sql.Tx, sessionID int) ([]*TSessionParticipant, error)
 	Create(tx *sql.Tx, sessionID, userID, inviteUserID int, status TParticipantStatus) (int, error)
 	UpdateStatus(tx *sql.Tx, id int, status TParticipantStatus) error
 	HardDelete(tx *sql.Tx, sessionID int) error
@@ -213,7 +213,7 @@ type TSessionParticipant struct {
 	Deleted   bool
 }
 
-func (spr *SessionParticipantRepository) QueryBySessionID(tx *sql.Tx, sessionID int) ([]TSessionParticipant, error) {
+func (spr *SessionParticipantRepository) QueryBySessionID(tx *sql.Tx, sessionID int) ([]*TSessionParticipant, error) {
 	// query
 	query := `SELECT id, chat_session_id, user_id, status, create_at, update_at, deleted 
 	FROM chat_session_participants 
@@ -225,9 +225,9 @@ func (spr *SessionParticipantRepository) QueryBySessionID(tx *sql.Tx, sessionID 
 	defer rows.Close()
 
 	// results
-	var results []TSessionParticipant
+	var results []*TSessionParticipant
 	for rows.Next() {
-		sp := TSessionParticipant{}
+		sp := &TSessionParticipant{}
 		err := rows.Scan(&sp.ID, &sp.SessionID, &sp.UserID, &sp.Status, &sp.CreateAt, &sp.UpdateAt, &sp.Deleted)
 		if err != nil {
 			return nil, err
@@ -266,10 +266,85 @@ func (spr *SessionParticipantRepository) UpdateStatus(tx *sql.Tx, id int, status
 }
 
 // delete
-func (cspr *ChatSessionParticipantRepository) HardDelete(tx *sql.Tx, sessionID int) error {
+func (spr *SessionParticipantRepository) HardDelete(tx *sql.Tx, participantID int) error {
 	// query
-	query := `DELETE FROM chat_session_participants WHERE chat_session_id = ?`
-	_, err := tx.Exec(query, sessionID)
+	query := `DELETE FROM chat_session_participants WHERE id = ?`
+	_, err := tx.Exec(query, participantID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type SessionChatRepository struct{}
+type SessionChatRepositoryInterface interface {
+	Create(tx *sql.Tx, sessionID, userID int, content string) (int, error)
+	QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*Chat, error)
+}
+
+type TQuerySessionChat struct {
+	ID        int
+	SessionID int
+	UserID    int
+	Content   string
+	CreateAt  time.Time
+	UpdateAt  time.Time
+	Deleted   bool
+}
+
+func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*Chat, error) {
+	// query
+	query := `
+	SELECT id, chat_session_id, user_id, content, create_at, update_at, deleted 
+	FROM chats 
+	WHERE chat_session_id IN (
+		SELECT chat_session_id FROM chat_session_participants
+		WHERE user_id = ?
+		AND status = 'joined'
+	)
+		AND create_at >= ? 
+		AND create_at <= ?`
+	rows, err := DB.Query(query, userID, inRange.startDate, inRange.endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// results
+	var results []*Chat
+	for rows.Next() {
+		c := &Chat{}
+		err := rows.Scan(&c.ID, &c.SessionID, &c.UserID, &c.Content, &c.CreateAt, &c.UpdateAt, &c.Deleted)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// create
+func (scr *SessionChatRepository) Create(tx *sql.Tx, sessionID, userID int, content string) (int, error) {
+	// query
+	query := `INSERT INTO chats (chat_session_id, user_id, content) VALUES (?, ?, ?)`
+	result, err := DB.Exec(query, sessionID, userID, content)
+	if err != nil {
+		return 0, nil
+	}
+	id, err := result.LastInsertId()
+	return int(id), err
+}
+
+// delete
+func (cr *SessionChatRepository) HardDelete(tx *sql.Tx, chatID int) error {
+	//query
+	query := `DELETE FROM chats WHERE id = ?`
+	_, err := tx.Exec(query, chatID)
 	if err != nil {
 		return err
 	}
