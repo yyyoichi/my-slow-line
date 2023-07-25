@@ -154,6 +154,16 @@ func (sr *SessionRepository) UpdateName(tx *sql.Tx, id int, name string) error {
 	return nil
 }
 
+func (sr *SessionRepository) UpdateStatus(tx *sql.Tx, id int, status TSessionStatus) error {
+	// query
+	query := `UPDATE chat_sessions SET status = ? WHERE id = ?`
+	_, err := tx.Exec(query, status, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // delete row
 func (sr *SessionRepository) HardDelete(tx *sql.Tx, sessionID int) error {
 	// query
