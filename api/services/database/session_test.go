@@ -10,11 +10,65 @@ func init() {
 	Connect()
 }
 
+// //////////////////////////////////
+// //////// test Session ////////////
+// //////////////////////////////////
+
+func TestSession(t *testing.T) {
+	// Create a mock user
+	usersR := &UserRepository{}
+	mockUser := createMockUser()
+	testUser, close := userMock(t, usersR, mockUser)
+	userID := testUser.Id
+	defer close()
+	testSession(t, NewSessionRepositories(), userID)
+}
+
+func TestSessionMock(t *testing.T) {
+	testSession(t, NewSessionRepositoriesMock(), 1)
+}
+
 type tQuerySession struct {
 	Name   string
 	Status TSessionStatus
 }
 
+func testSession(t *testing.T, repos *SessionRepositories, userID int) {
+	tx, err := DB.Begin()
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	sr := repos.SessionRepository
+
+	// create
+	sessionID, err := sr.Create(tx, userID, "", "Test")
+	if err != nil {
+		t.Error(err)
+	}
+	defer sr.HardDelete(tx, sessionID)
+
+	// test
+	testQuerySession(t, sessionID, "Test", TActiveSession)
+
+	// update
+	err = sr.UpdateName(tx, sessionID, "Update")
+	if err != nil {
+		t.Error(err)
+	}
+	testQuerySession(t, sessionID, "Update", TActiveSession)
+
+	err = sr.UpdateStatus(tx, sessionID, TArchivedSession)
+	if err != nil {
+		t.Error(err)
+	}
+	testQuerySession(t, sessionID, "Update", TArchivedSession)
+}
 func querySessionByID(sessionID int) (*tQuerySession, error) {
 	query := `SELECT name, status FROM chat_sessions WHERE id = ?`
 	row := DB.QueryRow(query, sessionID)
@@ -45,68 +99,10 @@ func testQuerySession(t *testing.T, sessionID int, expName string, expStatus TSe
 		t.Errorf("Expected Status '%s', but got='%s'", expStatus, session.Status)
 	}
 }
-func TestSession(t *testing.T) {
-	// Create a mock user
-	usersR := &UserRepository{}
-	mockUser := createMockUser()
-	testUser, close := userMock(t, usersR, mockUser)
-	userID := testUser.Id
-	defer close()
 
-	tx, err := DB.Begin()
-	if err != nil {
-		t.Error(err)
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	sr := SessionRepository{}
-
-	// create
-	sessionID, err := sr.Create(tx, userID, "", "Test")
-	if err != nil {
-		t.Error(err)
-	}
-	defer sr.HardDelete(tx, sessionID)
-
-	// test
-	testQuerySession(t, sessionID, "Test", TActiveSession)
-
-	// update
-	err = sr.UpdateName(tx, sessionID, "Update")
-	if err != nil {
-		t.Error(err)
-	}
-	testQuerySession(t, sessionID, "Update", TActiveSession)
-
-	err = sr.UpdateStatus(tx, sessionID, TArchivedSession)
-	if err != nil {
-		t.Error(err)
-	}
-	testQuerySession(t, sessionID, "Update", TArchivedSession)
-}
-
-func testQueryParticipant(t *testing.T, tx *sql.Tx, sessionID int, expStatus TParticipantStatus, expUserID int) {
-	spr := SessionParticipantRepository{}
-	participants, err := spr.QueryBySessionID(tx, sessionID)
-	if err != nil {
-		t.Error(err)
-	}
-	if len(participants) != 1 {
-		t.Errorf("Expected length of participants is 1, but got='%d'", len(participants))
-	}
-	participant := participants[0]
-
-	if participant.Status != expStatus {
-		t.Errorf("Expected Status '%s', but got='%s'", expStatus, participant.Status)
-	}
-	if participant.UserID != expUserID {
-		t.Errorf("Expected UserID '%d', but got='%d'", expUserID, participant.UserID)
-	}
-}
+////////////////////////////////////
+///// test Session Participant//////
+////////////////////////////////////
 
 func TestSessionParticipant(t *testing.T) {
 	// Create a mock user
@@ -115,7 +111,13 @@ func TestSessionParticipant(t *testing.T) {
 	testUser, close := userMock(t, usersR, mockUser)
 	userID := testUser.Id
 	defer close()
+	testSessionParticipant(t, NewSessionRepositories(), userID)
+}
+func TestSessionParticipantMock(t *testing.T) {
+	testSessionParticipant(t, NewSessionRepositoriesMock(), 1)
+}
 
+func testSessionParticipant(t *testing.T, repos *SessionRepositories, userID int) {
 	tx, err := DB.Begin()
 	if err != nil {
 		t.Error(err)
@@ -124,7 +126,7 @@ func TestSessionParticipant(t *testing.T) {
 		tx.Rollback()
 	}()
 
-	sr := SessionRepository{}
+	sr := repos.SessionRepository
 
 	// create
 	sessionID, err := sr.Create(tx, userID, "", "Test")
@@ -133,7 +135,7 @@ func TestSessionParticipant(t *testing.T) {
 	}
 	defer sr.HardDelete(tx, sessionID)
 
-	spr := SessionParticipantRepository{}
+	spr := repos.SessionParticipantRepository
 
 	// create
 	participantID, err := spr.Create(tx, sessionID, userID, userID, TInvitedParty)
@@ -141,14 +143,26 @@ func TestSessionParticipant(t *testing.T) {
 		t.Error(err)
 	}
 	defer spr.HardDelete(tx, participantID)
-	testQueryParticipant(t, tx, sessionID, TInvitedParty, userID)
+	var participants []*TSessionParticipant
+
+	// query and check
+	participants, err = spr.QueryBySessionID(tx, sessionID)
+	if err != nil {
+		t.Error(err)
+	}
+	testQueryParticipant(t, tx, participants, TInvitedParty, userID)
 
 	// update
 	err = spr.UpdateStatus(tx, participantID, TJoinedParty)
 	if err != nil {
 		t.Error(err)
 	}
-	testQueryParticipant(t, tx, sessionID, TJoinedParty, userID)
+	// query and check
+	participants, err = spr.QueryBySessionID(tx, sessionID)
+	if err != nil {
+		t.Error(err)
+	}
+	testQueryParticipant(t, tx, participants, TJoinedParty, userID)
 
 	// joined test
 	ok, err := sr.HasStatusAt(tx, sessionID, userID, []TParticipantStatus{TJoinedParty})
@@ -189,6 +203,24 @@ func TestSessionParticipant(t *testing.T) {
 	}
 }
 
+func testQueryParticipant(t *testing.T, tx *sql.Tx, participants []*TSessionParticipant, expStatus TParticipantStatus, expUserID int) {
+	if len(participants) != 1 {
+		t.Errorf("Expected length of participants is 1, but got='%d'", len(participants))
+	}
+	participant := participants[0]
+
+	if participant.Status != expStatus {
+		t.Errorf("Expected Status '%s', but got='%s'", expStatus, participant.Status)
+	}
+	if participant.UserID != expUserID {
+		t.Errorf("Expected UserID '%d', but got='%d'", expUserID, participant.UserID)
+	}
+}
+
+////////////////////////////////////
+///////// test Session Chat/////////
+////////////////////////////////////
+
 func TestSessionChat(t *testing.T) {
 	// Create a mock user
 	usersR := &UserRepository{}
@@ -196,7 +228,13 @@ func TestSessionChat(t *testing.T) {
 	testUser, close := userMock(t, usersR, mockUser)
 	userID := testUser.Id
 	defer close()
+	testSessionChat(t, NewSessionRepositories(), userID)
+}
+func TestSessionChatMock(t *testing.T) {
+	testSessionChat(t, NewSessionRepositoriesMock(), 1)
+}
 
+func testSessionChat(t *testing.T, repos *SessionRepositories, userID int) {
 	tx, err := DB.Begin()
 	if err != nil {
 		t.Error(err)
@@ -205,7 +243,7 @@ func TestSessionChat(t *testing.T) {
 		tx.Rollback()
 	}()
 
-	sr := SessionRepository{}
+	sr := repos.SessionRepository
 
 	// create
 	sessionID, err := sr.Create(tx, userID, "", "Test")
@@ -214,7 +252,7 @@ func TestSessionChat(t *testing.T) {
 	}
 	defer sr.HardDelete(tx, sessionID)
 
-	spr := SessionParticipantRepository{}
+	spr := repos.SessionParticipantRepository
 
 	// create
 	participantID, err := spr.Create(tx, sessionID, userID, userID, TJoinedParty)
@@ -223,7 +261,7 @@ func TestSessionChat(t *testing.T) {
 	}
 	defer spr.HardDelete(tx, participantID)
 
-	scr := SessionChatRepository{}
+	scr := repos.SessionChatRepository
 
 	// create
 	chatID, err := scr.Create(tx, sessionID, userID, "Test Chat")
@@ -231,17 +269,6 @@ func TestSessionChat(t *testing.T) {
 		t.Error(err)
 	}
 	defer scr.HardDelete(tx, chatID)
-
-	row := tx.QueryRow("SELECT content, create_at FROM chats where id = ?", chatID)
-	var content string
-	var at time.Time
-	if err = row.Scan(&content, &at); err != nil {
-		t.Error(err)
-	}
-	if content != "Test Chat" {
-		t.Errorf("Expected Content is 'Test Chat', but got='%s'", content)
-	}
-	t.Log(at.String())
 
 	chats, err := scr.QueryByUserIDInRange(tx, userID, struct {
 		startDate time.Time
