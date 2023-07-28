@@ -3,6 +3,8 @@ package database
 import (
 	"database/sql"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type TSessionStatus string
@@ -16,9 +18,9 @@ const (
 type TParticipantStatus string
 
 const (
-	TInvitedParty  ParticipantStatus = "invited"
-	TJoinedParty   ParticipantStatus = "joined"
-	TRejectedParty ParticipantStatus = "rejected"
+	TInvitedParty  TParticipantStatus = "invited"
+	TJoinedParty   TParticipantStatus = "joined"
+	TRejectedParty TParticipantStatus = "rejected"
 )
 
 type SessionRepository struct{}
@@ -61,7 +63,11 @@ func (sr *SessionRepository) QueryByUserID(tx *sql.Tx, userID int, options TQuer
 	WHERE p.user_id = ? 
 		AND p.status IN (?)
 		AND s.status IN (?)`
-	rows, err := tx.Query(query, userID, options.InPartyStatus, options.InSessionStatus)
+	query, params, err := sqlx.In(query, userID, options.InPartyStatus, options.InSessionStatus)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := tx.Query(query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,11 +122,15 @@ func (sr *SessionRepository) HasStatusAt(tx *sql.Tx, sessionID, userID int, inSt
 	FROM chat_sessions AS s 
 		RIGHT JOIN chat_session_participants AS p ON s.id = p.chat_session_id
 	WHERE s.id = ? AND p.user_id = ? AND p.status IN (?)`
-	row := tx.QueryRow(query, sessionID, userID)
+	query, params, err := sqlx.In(query, sessionID, userID, inStatus)
+	if err != nil {
+		return false, err
+	}
+	row := tx.QueryRow(query, params...)
 
 	// result
 	id := 0
-	err := row.Scan(&id)
+	err = row.Scan(&id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No rows found, return nil without an error.
@@ -307,16 +317,14 @@ type TQuerySessionChat struct {
 func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*Chat, error) {
 	// query
 	query := `
-	SELECT id, chat_session_id, user_id, content, create_at, update_at, deleted 
-	FROM chats 
-	WHERE chat_session_id IN (
-		SELECT chat_session_id FROM chat_session_participants
-		WHERE user_id = ?
-		AND status = 'joined'
-	)
-		AND create_at >= ? 
-		AND create_at <= ?`
-	rows, err := DB.Query(query, userID, inRange.startDate, inRange.endDate)
+	SELECT c.id, c.chat_session_id, c.user_id, c.content, c.create_at, c.update_at, c.deleted 
+	FROM chats AS c
+	LEFT JOIN chat_session_participants AS p 
+		ON c.chat_session_id = p.chat_session_id AND c.user_id = p.user_id
+	WHERE c.user_id = ?
+		AND p.status = 'joined' 
+		AND c.create_at BETWEEN ? AND ?`
+	rows, err := tx.Query(query, userID, inRange.startDate, inRange.endDate)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +352,7 @@ func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, in
 func (scr *SessionChatRepository) Create(tx *sql.Tx, sessionID, userID int, content string) (int, error) {
 	// query
 	query := `INSERT INTO chats (chat_session_id, user_id, content) VALUES (?, ?, ?)`
-	result, err := DB.Exec(query, sessionID, userID, content)
+	result, err := tx.Exec(query, sessionID, userID, content)
 	if err != nil {
 		return 0, nil
 	}
