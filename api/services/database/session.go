@@ -23,6 +23,20 @@ const (
 	TRejectedParty TParticipantStatus = "rejected"
 )
 
+type SessionRepositories struct {
+	SessionRepository            SessionRepositoryInterface
+	SessionParticipantRepository SessionParticipantRepositoryInterface
+	SessionChatRepository        SessionChatRepositoryInterface
+}
+
+func NewSessionRepositories() *SessionRepositories {
+	return &SessionRepositories{
+		&SessionRepository{},
+		&SessionParticipantRepository{},
+		&SessionChatRepository{},
+	}
+}
+
 type SessionRepository struct{}
 type SessionRepositoryInterface interface {
 	QueryByUserID(tx *sql.Tx, userID int, options TQuerySessionsOptions) ([]*TQuerySessions, error)
@@ -300,7 +314,7 @@ func (spr *SessionParticipantRepository) HardDelete(tx *sql.Tx, participantID in
 type SessionChatRepository struct{}
 type SessionChatRepositoryInterface interface {
 	Create(tx *sql.Tx, sessionID, userID int, content string) (int, error)
-	QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*Chat, error)
+	QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error)
 	HardDelete(tx *sql.Tx, chatID int) error
 }
 
@@ -314,15 +328,17 @@ type TQuerySessionChat struct {
 	Deleted   bool
 }
 
-func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*Chat, error) {
+func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error) {
 	// query
 	query := `
 	SELECT c.id, c.chat_session_id, c.user_id, c.content, c.create_at, c.update_at, c.deleted 
 	FROM chats AS c
 	LEFT JOIN chat_session_participants AS p 
 		ON c.chat_session_id = p.chat_session_id AND c.user_id = p.user_id
-	WHERE c.user_id = ?
-		AND p.status = 'joined' 
+	WHERE c.chat_session_id IN (
+		SELECT chat_session_id FROM chat_session_participants AS p 
+		WHERE p.user_id = ? AND p.status = 'joined' 
+	)
 		AND c.create_at BETWEEN ? AND ?`
 	rows, err := tx.Query(query, userID, inRange.startDate, inRange.endDate)
 	if err != nil {
@@ -331,9 +347,9 @@ func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, in
 	defer rows.Close()
 
 	// results
-	var results []*Chat
+	var results []*TQuerySessionChat
 	for rows.Next() {
-		c := &Chat{}
+		c := &TQuerySessionChat{}
 		err := rows.Scan(&c.ID, &c.SessionID, &c.UserID, &c.Content, &c.CreateAt, &c.UpdateAt, &c.Deleted)
 		if err != nil {
 			return nil, err
