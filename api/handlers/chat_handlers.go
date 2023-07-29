@@ -43,22 +43,22 @@ func (ch *ChatsHandlers) GetChatsHandler(w http.ResponseWriter, r *http.Request)
 }
 
 ///////////////////////////////////
-//////// chat at handlers /////////
+//////// chats at handlers ////////
 ///////////////////////////////////
 
-type ChatAtHandlers struct{}
+type ChatsAtHandlers struct{}
 
-func NewChatAtHandlers() func(http.ResponseWriter, *http.Request) {
-	cah := &ChatAtHandlers{}
-	return cah.ChatAtHandlers
+func NewChatsAtHandlers() func(http.ResponseWriter, *http.Request) {
+	cah := &ChatsAtHandlers{}
+	return cah.ChatsAtHandlers
 }
 
-func (cah *ChatAtHandlers) ChatAtHandlers(w http.ResponseWriter, r *http.Request) {
+func (cah *ChatsAtHandlers) ChatsAtHandlers(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		cah.GetChatAtHandler(w, r)
+		cah.GetChatsAtHandler(w, r)
 	case "POST":
-		cah.PostChatAtHandler(w, r)
+		cah.PostChatsAtHandler(w, r)
 	default:
 		http.Error(w, ErrUnExpcetedMethod, http.StatusBadRequest)
 	}
@@ -66,7 +66,7 @@ func (cah *ChatAtHandlers) ChatAtHandlers(w http.ResponseWriter, r *http.Request
 
 // get chats in 48hours
 
-type GetChatAtHandlerResp struct {
+type GetChatsAtHandlerResp struct {
 	ID        int       `json:"id"`
 	SessionID int       `json:"sessionID"`
 	UserID    int       `json:"userID"`
@@ -76,7 +76,7 @@ type GetChatAtHandlerResp struct {
 	Deleted   bool      `json:"deleted"`
 }
 
-func (cah *ChatAtHandlers) GetChatAtHandler(w http.ResponseWriter, r *http.Request) {
+func (cah *ChatsAtHandlers) GetChatsAtHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // send chat
@@ -86,5 +86,5 @@ type PostChatAtHandlerBody struct {
 	Content string `validate:"required"`
 }
 
-func (cah *ChatAtHandlers) PostChatAtHandler(w http.ResponseWriter, r *http.Request) {
+func (cah *ChatsAtHandlers) PostChatsAtHandler(w http.ResponseWriter, r *http.Request) {
 }
