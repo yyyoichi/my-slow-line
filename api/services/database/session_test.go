@@ -293,8 +293,8 @@ func testSessionChat(t *testing.T, repos *SessionRepositories, userID int) {
 	defer scr.HardDelete(tx, chatID3)
 
 	inRange := TQuerySessionChatInRange{
-		startDate: time.Now().Add(-1 * time.Hour),
-		endDate:   time.Now().Add(1 * time.Hour),
+		StartDate: time.Now().Add(-1 * time.Hour),
+		EndDate:   time.Now().Add(1 * time.Hour),
 	}
 	chats, err := scr.QueryByUserIDInRange(tx, userID, inRange)
 	if err != nil {

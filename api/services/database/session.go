@@ -331,7 +331,7 @@ type TQuerySessionChat struct {
 }
 
 type TQuerySessionChatInRange struct {
-	startDate, endDate time.Time
+	StartDate, EndDate time.Time
 }
 
 func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, inRange TQuerySessionChatInRange) ([]*TQuerySessionChat, error) {
@@ -346,7 +346,7 @@ func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, in
 		WHERE p.user_id = ? AND p.status = 'joined' 
 	)
 		AND c.create_at BETWEEN ? AND ?`
-	rows, err := tx.Query(query, userID, inRange.startDate, inRange.endDate)
+	rows, err := tx.Query(query, userID, inRange.StartDate, inRange.EndDate)
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +377,7 @@ func (cr *SessionChatRepository) QueryBySessionIDInRange(tx *sql.Tx, sessionID i
 	FROM chats 
 	WHERE chat_session_id = ?
 		AND create_at BETWEEN ? AND ?`
-	rows, err := tx.Query(query, sessionID, inRange.startDate, inRange.endDate)
+	rows, err := tx.Query(query, sessionID, inRange.StartDate, inRange.EndDate)
 	if err != nil {
 		return nil, err
 	}
