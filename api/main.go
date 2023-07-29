@@ -55,9 +55,15 @@ func handler() {
 	wp.HandleFunc("/subscription", handlers.PushSubscriptionHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
 
 	ses := me.PathPrefix("/sessions").Subrouter()
-	ses.HandleFunc("", NotFoundHandler).Methods(http.MethodGet, http.MethodPost)
-	ses.HandleFunc("/:sessionID/participants", NotFoundHandler).Methods(http.MethodPost)
-	ses.HandleFunc("/:sessionID", NotFoundHandler).Methods(http.MethodGet, http.MethodPut)
+	ses.HandleFunc("", handlers.NewSessionsHandlers()).Methods(http.MethodGet, http.MethodPost)
+	ses.HandleFunc("/:sessionID", handlers.NewSessionAtHandlers()).Methods(http.MethodGet, http.MethodPut)
+
+	chs := me.PathPrefix("/chats").Subrouter()
+	chs.HandleFunc("", handlers.NewChatsHandlers()).Methods(http.MethodGet)
+	chs.HandleFunc("/:sessionID", handlers.NewChatAtHandlers()).Methods(http.MethodGet, http.MethodPost)
+
+	phs := me.PathPrefix("/participants").Subrouter()
+	phs.HandleFunc("/:sessionID", handlers.NewParticipantAtHandlers()).Methods(http.MethodPost, http.MethodPut)
 
 	api.Use(middleware.CROSMiddleware)
 	api.Use(middleware.CSRFMiddleware)
