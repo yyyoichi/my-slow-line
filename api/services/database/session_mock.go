@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"sort"
 	"time"
 )
 
@@ -51,6 +52,72 @@ func (dm *SessionDataMock) genChats() <-chan *TQuerySessionChat {
 	return ch
 }
 
+func (dm *SessionDataMock) querySessionsByUserID(userID int, options TQuerySessionsOptions) ([]*TQuerySessions, error) {
+	var tmpResults []struct {
+		id     int
+		status TParticipantStatus
+	}
+	for party := range dm.genParticipants() {
+		// eq user
+		if party.UserID != userID {
+			continue
+		}
+		// has status
+		hasStatus := false
+		for _, status := range options.InPartyStatus {
+			if status == party.Status {
+				hasStatus = true
+				break
+			}
+		}
+		if !hasStatus {
+			continue
+		}
+
+		// add results
+		session := struct {
+			id     int
+			status TParticipantStatus
+		}{
+			party.SessionID,
+			party.Status,
+		}
+		tmpResults = append(tmpResults, session)
+	}
+
+	var results []*TQuerySessions
+	// map session
+	for _, rlt := range tmpResults {
+		for session := range dm.genSessions() {
+			if rlt.id != session.id {
+				continue
+			}
+			hasStatus := false
+			for _, status := range options.InSessionStatus {
+				if status == session.status {
+					hasStatus = true
+					break
+				}
+			}
+			if !hasStatus {
+				continue
+			}
+			result := &TQuerySessions{
+				session.id,
+				session.name,
+				session.public_key,
+				session.status,
+				rlt.status,
+				session.create_at,
+				session.update_at,
+				session.deleted,
+			}
+			results = append(results, result)
+		}
+	}
+	return results, nil
+}
+
 // delete
 func (dm *SessionDataMock) hardParticipantsDeleteBySessionID(tx *sql.Tx, sessionID int) error {
 	delete(dm.participantBySessionID, sessionID)
@@ -85,67 +152,9 @@ type SessionRepositoryMock struct {
 }
 
 func (sr *SessionRepositoryMock) QueryByUserID(tx *sql.Tx, userID int, options TQuerySessionsOptions) ([]*TQuerySessions, error) {
-	var tmpResults []struct {
-		id     int
-		status TParticipantStatus
-	}
-	for party := range sr.mock.genParticipants() {
-		// eq user
-		if party.UserID != userID {
-			continue
-		}
-		// has status
-		hasStatus := false
-		for _, status := range options.InPartyStatus {
-			if status == party.Status {
-				hasStatus = true
-				break
-			}
-		}
-		if !hasStatus {
-			continue
-		}
-
-		// add results
-		session := struct {
-			id     int
-			status TParticipantStatus
-		}{
-			party.SessionID,
-			party.Status,
-		}
-		tmpResults = append(tmpResults, session)
-	}
-
-	var results []*TQuerySessions
-	// map session
-	for _, rlt := range tmpResults {
-		for session := range sr.mock.genSessions() {
-			if rlt.id != session.id {
-				continue
-			}
-			hasStatus := false
-			for _, status := range options.InSessionStatus {
-				if status == session.status {
-					hasStatus = true
-					break
-				}
-			}
-			if !hasStatus {
-				continue
-			}
-			result := &TQuerySessions{
-				session.id,
-				session.name,
-				session.public_key,
-				session.status,
-				rlt.status,
-				session.create_at,
-				session.update_at,
-				session.deleted,
-			}
-			results = append(results, result)
-		}
+	results, err := sr.mock.querySessionsByUserID(userID, options)
+	if err != nil {
+		return nil, err
 	}
 	return results, nil
 }
@@ -314,6 +323,47 @@ func (cr *SessionChatRepositoryMock) QueryByUserIDInRange(tx *sql.Tx, userID int
 			results = append(results, chat)
 		}
 	}
+	return results, nil
+}
+
+func (cr *SessionChatRepositoryMock) QueryLastChatInActiveSessions(tx *sql.Tx, userID int) ([]*TQueryLastChat, error) {
+	sessions, err := cr.mock.querySessionsByUserID(userID, TQuerySessionsOptions{[]TParticipantStatus{TJoinedParty}, []TSessionStatus{TActiveSession}})
+	if err != nil {
+		return nil, err
+	}
+	chats, found := cr.mock.chatByUserID[userID]
+	if !found {
+		return nil, sql.ErrNoRows
+	}
+	getAt := func(sessionID int) *TQuerySessionChat {
+		for i := len(chats) - 1; i >= 0; i-- {
+			chat := chats[i]
+			if chat.SessionID == sessionID {
+				return chat
+			}
+		}
+		return nil
+	}
+	var results []*TQueryLastChat
+	for _, session := range sessions {
+		chat := getAt(session.ID)
+		lastChat := &TQueryLastChat{
+			session.Name,
+			session.ID,
+			chat.UserID,
+			chat.ID,
+			chat.Content,
+			chat.CreateAt,
+			chat.UpdateAt,
+			chat.Deleted,
+		}
+		results = append(results, lastChat)
+	}
+
+	// sort createAt desc
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].CreateAt.After(results[j].CreateAt)
+	})
 	return results, nil
 }
 

@@ -315,6 +315,7 @@ type SessionChatRepository struct{}
 type SessionChatRepositoryInterface interface {
 	Create(tx *sql.Tx, sessionID, userID int, content string) (int, error)
 	QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error)
+	QueryLastChatInActiveSessions(tx *sql.Tx, userID int) ([]*TQueryLastChat, error)
 	HardDelete(tx *sql.Tx, chatID int) error
 }
 
@@ -351,6 +352,57 @@ func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, in
 	for rows.Next() {
 		c := &TQuerySessionChat{}
 		err := rows.Scan(&c.ID, &c.SessionID, &c.UserID, &c.Content, &c.CreateAt, &c.UpdateAt, &c.Deleted)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+type TQueryLastChat struct {
+	SessionName string
+	SessionID   int
+	UserID      int
+	ID          int
+	Content     string
+	CreateAt    time.Time
+	UpdateAt    time.Time
+	Deleted     bool
+}
+
+func (cr *SessionChatRepository) QueryLastChatInActiveSessions(tx *sql.Tx, userID int) ([]*TQueryLastChat, error) {
+	query := `
+	SELECT name, id, user_id, chat_id, content, create_at, update_at, deleted
+	FROM (
+		SELECT s.name, s.id, c.user_id, c.id AS chat_id, c.content, c.create_at, c.update_at, c.deleted,
+					ROW_NUMBER() OVER (PARTITION BY s.id ORDER BY c.id DESC) AS rn
+		FROM chats AS c
+		LEFT JOIN chat_sessions AS s ON c.chat_session_id = s.id
+		LEFT JOIN chat_session_participants AS p ON p.chat_session_id = s.id
+		WHERE p.user_id = ?
+			AND p.status = 'joined'
+			AND s.status = 'active'
+	) AS temp
+	WHERE rn = 1
+	ORDER BY create_at DESC
+	`
+	rows, err := tx.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// results
+	var results []*TQueryLastChat
+	for rows.Next() {
+		c := &TQueryLastChat{}
+		err := rows.Scan(&c.SessionName, &c.SessionID, &c.UserID, &c.ID, &c.Content, &c.CreateAt, &c.UpdateAt, &c.Deleted)
 		if err != nil {
 			return nil, err
 		}

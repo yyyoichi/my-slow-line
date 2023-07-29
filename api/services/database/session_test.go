@@ -250,7 +250,12 @@ func testSessionChat(t *testing.T, repos *SessionRepositories, userID int) {
 	if err != nil {
 		t.Error(err)
 	}
+	sessionID2, err := sr.Create(tx, userID, "", "Test2")
+	if err != nil {
+		t.Error(err)
+	}
 	defer sr.HardDelete(tx, sessionID)
+	defer sr.HardDelete(tx, sessionID2)
 
 	spr := repos.SessionParticipantRepository
 
@@ -259,7 +264,12 @@ func testSessionChat(t *testing.T, repos *SessionRepositories, userID int) {
 	if err != nil {
 		t.Error(err)
 	}
+	participantID2, err := spr.Create(tx, sessionID2, userID, userID, TJoinedParty)
+	if err != nil {
+		t.Error(err)
+	}
 	defer spr.HardDelete(tx, participantID)
+	defer spr.HardDelete(tx, participantID2)
 
 	scr := repos.SessionChatRepository
 
@@ -268,7 +278,19 @@ func testSessionChat(t *testing.T, repos *SessionRepositories, userID int) {
 	if err != nil {
 		t.Error(err)
 	}
+	time.Sleep(1 * time.Second)
+	chatID2, err := scr.Create(tx, sessionID2, userID, "Test Chat")
+	if err != nil {
+		t.Error(err)
+	}
+	time.Sleep(1 * time.Second)
+	chatID3, err := scr.Create(tx, sessionID2, userID, "Test Chat2")
+	if err != nil {
+		t.Error(err)
+	}
 	defer scr.HardDelete(tx, chatID)
+	defer scr.HardDelete(tx, chatID2)
+	defer scr.HardDelete(tx, chatID3)
 
 	chats, err := scr.QueryByUserIDInRange(tx, userID, struct {
 		startDate time.Time
@@ -281,10 +303,21 @@ func testSessionChat(t *testing.T, repos *SessionRepositories, userID int) {
 		t.Error(err)
 	}
 
-	if len(chats) != 1 {
-		t.Errorf("Expected len(chats) is 1, but got='%d'", len(chats))
+	if len(chats) != 3 {
+		t.Errorf("Expected len(chats) is 3, but got='%d'", len(chats))
 	}
-	if chats[0].Content != "Test Chat" {
-		t.Errorf("Expected Content is 'Test Chat', but got='%s'", chats[0].Content)
+
+	lastChats, err := scr.QueryLastChatInActiveSessions(tx, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(lastChats) != 2 {
+		t.Errorf("Expected len(lastChats) is 2, but got='%d'", len(lastChats))
+	}
+	if lastChats[0].ID != chatID3 {
+		t.Errorf("Expected lastChats[0].ID is '%d', but got='%d'", chatID3, lastChats[0].ID)
+	}
+	if lastChats[1].ID != chatID {
+		t.Errorf("Expected lastChats[1].ID is '%d', but got='%d'", chatID, lastChats[1].ID)
 	}
 }
