@@ -9,19 +9,19 @@ import (
 //// participant at handlers //////
 ///////////////////////////////////
 
-type ParticipantAtHandlers struct{}
+type ParticipantsAtHandlers struct{}
 
-func NewParticipantAtHandlers() func(http.ResponseWriter, *http.Request) {
-	cah := &ChatAtHandlers{}
-	return cah.ChatAtHandlers
+func NewParticipantsAtHandlers() func(http.ResponseWriter, *http.Request) {
+	pah := &ParticipantsAtHandlers{}
+	return pah.ParticipantsAtHandlers
 }
 
-func (pah *ParticipantAtHandlers) ParticipantAtHandlers(w http.ResponseWriter, r *http.Request) {
+func (pah *ParticipantsAtHandlers) ParticipantsAtHandlers(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
-		pah.PostParticipantAtHandler(w, r)
+		pah.PostParticipantsAtHandler(w, r)
 	case "PUT":
-		pah.PutParticipantAtHandler(w, r)
+		pah.PutParticipantsAtHandler(w, r)
 	default:
 		http.Error(w, ErrUnExpcetedMethod, http.StatusBadRequest)
 	}
@@ -29,12 +29,12 @@ func (pah *ParticipantAtHandlers) ParticipantAtHandlers(w http.ResponseWriter, r
 
 // invite user
 
-type PostParticipantAtHandlerBody struct {
+type PostParticipantsAtHandlerBody struct {
 	UserID int `validate:"required"`
 }
 
 // TODO: write
-func (pah *ParticipantAtHandlers) PostParticipantAtHandler(w http.ResponseWriter, r *http.Request) {
+func (pah *ParticipantsAtHandlers) PostParticipantsAtHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // update status
@@ -44,5 +44,5 @@ type PoutParticipantAtHandlerBody struct {
 	Status database.TParticipantStatus `validate:"required"`
 }
 
-func (pah *ParticipantAtHandlers) PutParticipantAtHandler(w http.ResponseWriter, r *http.Request) {
+func (pah *ParticipantsAtHandlers) PutParticipantsAtHandler(w http.ResponseWriter, r *http.Request) {
 }
