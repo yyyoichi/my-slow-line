@@ -367,6 +367,16 @@ func (cr *SessionChatRepositoryMock) QueryLastChatInActiveSessions(tx *sql.Tx, u
 	return results, nil
 }
 
+func (cr *SessionChatRepositoryMock) QueryBySessionIDInRange(tx *sql.Tx, sessionID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error) {
+	var chats []*TQuerySessionChat
+	for chat := range cr.mock.genChats() {
+		if chat.SessionID == sessionID {
+			chats = append(chats, chat)
+		}
+	}
+	return chats, nil
+}
+
 // create
 func (scr *SessionChatRepositoryMock) Create(tx *sql.Tx, sessionID, userID int, content string) (int, error) {
 	id := len(scr.mock.chatByUserID[userID]) + 1

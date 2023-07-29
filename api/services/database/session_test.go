@@ -292,19 +292,28 @@ func testSessionChat(t *testing.T, repos *SessionRepositories, userID int) {
 	defer scr.HardDelete(tx, chatID2)
 	defer scr.HardDelete(tx, chatID3)
 
-	chats, err := scr.QueryByUserIDInRange(tx, userID, struct {
+	inRange := struct {
 		startDate time.Time
 		endDate   time.Time
 	}{
 		startDate: time.Now().Add(-1 * time.Hour),
 		endDate:   time.Now().Add(1 * time.Hour),
-	})
+	}
+	chats, err := scr.QueryByUserIDInRange(tx, userID, inRange)
 	if err != nil {
 		t.Error(err)
 	}
 
 	if len(chats) != 3 {
 		t.Errorf("Expected len(chats) is 3, but got='%d'", len(chats))
+	}
+
+	chats, err = scr.QueryBySessionIDInRange(tx, sessionID2, inRange)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(chats) != 2 {
+		t.Errorf("Expected len(chats) is 2, but got='%d'", len(chats))
 	}
 
 	lastChats, err := scr.QueryLastChatInActiveSessions(tx, userID)

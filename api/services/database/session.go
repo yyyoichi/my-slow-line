@@ -315,6 +315,7 @@ type SessionChatRepository struct{}
 type SessionChatRepositoryInterface interface {
 	Create(tx *sql.Tx, sessionID, userID int, content string) (int, error)
 	QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error)
+	QueryBySessionIDInRange(tx *sql.Tx, sessionID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error)
 	QueryLastChatInActiveSessions(tx *sql.Tx, userID int) ([]*TQueryLastChat, error)
 	HardDelete(tx *sql.Tx, chatID int) error
 }
@@ -342,6 +343,37 @@ func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, in
 	)
 		AND c.create_at BETWEEN ? AND ?`
 	rows, err := tx.Query(query, userID, inRange.startDate, inRange.endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// results
+	var results []*TQuerySessionChat
+	for rows.Next() {
+		c := &TQuerySessionChat{}
+		err := rows.Scan(&c.ID, &c.SessionID, &c.UserID, &c.Content, &c.CreateAt, &c.UpdateAt, &c.Deleted)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (cr *SessionChatRepository) QueryBySessionIDInRange(tx *sql.Tx, sessionID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error) {
+	// query
+	query := `
+	SELECT id, chat_session_id, user_id, content, create_at, update_at, deleted 
+	FROM chats 
+	WHERE chat_session_id = ?
+		AND create_at BETWEEN ? AND ?`
+	rows, err := tx.Query(query, sessionID, inRange.startDate, inRange.endDate)
 	if err != nil {
 		return nil, err
 	}
