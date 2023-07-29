@@ -9,11 +9,13 @@ import (
 
 var (
 	ErrCannotAccessSession = errors.New("cannot access session")
+	ErrNoFoundUUID         = errors.New("not found uuid")
 )
 
 type SessionServices struct {
-	repositories *database.SessionRepositories
-	loginUserID  int
+	repositories          *database.SessionRepositories
+	recruitmentRepository database.FRecruitmentRepositoryInterface
+	loginUserID           int
 }
 
 func NewSessionServices(loginUserID int) *SessionServices {
@@ -36,6 +38,19 @@ func (ss *SessionServices) GetActiveOrArchivedSessions() ([]*database.TQuerySess
 		return nil, err
 	}
 	return sessions, nil
+}
+
+// get userID data from uuid
+func (ss *SessionServices) LookUpRecruitment(uuid string) (*database.TFRecruitment, error) {
+	recruit, err := ss.recruitmentRepository.QueryByUUID(uuid)
+	if err != nil {
+		return nil, err
+	}
+	if recruit.Deleted {
+		return nil, ErrNoFoundUUID
+	}
+
+	return recruit, nil
 }
 
 // create session and loginUser invite userID

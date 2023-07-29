@@ -1,6 +1,9 @@
 package database
 
-import "errors"
+import (
+	"database/sql"
+	"errors"
+)
 
 type MockFRecruitmentRepository struct {
 	RecruitmentByID map[int][]TFRecruitment
@@ -16,6 +19,17 @@ func (m *MockFRecruitmentRepository) QueryByUserId(userId int) ([]TFRecruitment,
 		return recruitments, nil
 	}
 	return nil, errors.New("user not found")
+}
+
+func (m *MockFRecruitmentRepository) QueryByUUID(uuid string) (*TFRecruitment, error) {
+	for _, recruits := range m.RecruitmentByID {
+		for _, r := range recruits {
+			if r.Uuid == uuid {
+				return &r, nil
+			}
+		}
+	}
+	return nil, sql.ErrNoRows
 }
 
 // Update is a mock method that updates the Recruitment information corresponding to the specified UUID

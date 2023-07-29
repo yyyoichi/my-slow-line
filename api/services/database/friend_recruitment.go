@@ -1,9 +1,13 @@
 package database
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type FRecruitmentRepositoryInterface interface {
 	QueryByUserId(userId int) ([]TFRecruitment, error)
+	QueryByUUID(uuid string) (*TFRecruitment, error)
 	Update(uuid string, message string, deleted bool) error
 	Create(userId int, uuid, message string) error
 	DeleteAll(userId int) error
@@ -48,6 +52,23 @@ func (fr *FRecruitmentRepository) QueryByUserId(userId int) ([]TFRecruitment, er
 	}
 
 	return results, nil
+}
+
+func (fr *FRecruitmentRepository) QueryByUUID(uuid string) (*TFRecruitment, error) {
+	query := `SELECT id, user_id, uuid, message, create_at, update_at, deleted FROM friend_recruitment WHERE uuid = ?`
+	row := DB.QueryRow(query, uuid)
+	// result
+	s := &TFRecruitment{}
+	err := row.Scan(&s.Id, &s.UserId, &s.Uuid, &s.Message, &s.CreateAt, &s.UpdateAt, &s.Deleted)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// No rows found, return nil without an error.
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return s, nil
 }
 
 func (fr *FRecruitmentRepository) Update(uuid string, message string, deleted bool) error {

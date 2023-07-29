@@ -17,7 +17,7 @@ func NewSessionServicesMock() *SessionServices {
 	var sessionID int
 	// loginUser is userID1 //
 	loginUserID := userID1
-	ss := &SessionServices{database.NewSessionRepositoriesMock(), loginUserID}
+	ss := &SessionServices{database.NewSessionRepositoriesMock(), database.NewMockFRecruitmentRepository(), loginUserID}
 
 	// session1 invite userID2
 	ss.CreateSession("", "Session1", userID2)
@@ -46,6 +46,9 @@ func NewSessionServicesMock() *SessionServices {
 	sessionID = 5
 	ss.CreateSession("", "Session5", userID2)
 	ss.repositories.SessionRepository.UpdateStatus(tx, sessionID, database.TBreakupSession)
+
+	// exp session6
+	ss.recruitmentRepository.Create(userID2, "Test UUID of userID2", "Test recruitment")
 
 	return ss
 }
