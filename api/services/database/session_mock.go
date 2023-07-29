@@ -279,15 +279,17 @@ func (spr *SessionParticipantRepositoryMock) Create(tx *sql.Tx, sessionID, userI
 }
 
 // update
-func (spr *SessionParticipantRepositoryMock) UpdateStatus(tx *sql.Tx, id int, status TParticipantStatus) error {
-	for party := range spr.mock.genParticipants() {
-		if id == party.ID {
+func (spr *SessionParticipantRepositoryMock) UpdateStatusBySessionUserID(tx *sql.Tx, sessionID, userID int, status TParticipantStatus) error {
+	participants, found := spr.mock.participantBySessionID[sessionID]
+	if !found {
+		return sql.ErrNoRows
+	}
+	for _, party := range participants {
+		if party.UserID == userID {
 			party.Status = status
-			return nil
 		}
 	}
-
-	return sql.ErrNoRows
+	return nil
 }
 
 // delete

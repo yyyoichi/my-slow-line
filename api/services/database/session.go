@@ -234,7 +234,7 @@ type SessionParticipantRepository struct{}
 type SessionParticipantRepositoryInterface interface {
 	QueryBySessionID(tx *sql.Tx, sessionID int) ([]*TSessionParticipant, error)
 	Create(tx *sql.Tx, sessionID, userID, inviteUserID int, status TParticipantStatus) (int, error)
-	UpdateStatus(tx *sql.Tx, id int, status TParticipantStatus) error
+	UpdateStatusBySessionUserID(tx *sql.Tx, sessionID, userID int, status TParticipantStatus) error
 	HardDelete(tx *sql.Tx, sessionID int) error
 }
 
@@ -290,10 +290,10 @@ func (spr *SessionParticipantRepository) Create(tx *sql.Tx, sessionID, userID, i
 }
 
 // update
-func (spr *SessionParticipantRepository) UpdateStatus(tx *sql.Tx, id int, status TParticipantStatus) error {
+func (spr *SessionParticipantRepository) UpdateStatusBySessionUserID(tx *sql.Tx, sessionID, userID int, status TParticipantStatus) error {
 	// query
-	query := `UPDATE chat_session_participants SET status = ? WHERE id = ?`
-	_, err := tx.Exec(query, status, id)
+	query := `UPDATE chat_session_participants SET status = ? WHERE chat_session_id = ? AND user_id = ?`
+	_, err := tx.Exec(query, status, sessionID, userID)
 	if err != nil {
 		return err
 	}

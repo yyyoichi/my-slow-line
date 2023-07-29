@@ -153,7 +153,7 @@ func testSessionParticipant(t *testing.T, repos *SessionRepositories, userID int
 	testQueryParticipant(t, tx, participants, TInvitedParty, userID)
 
 	// update
-	err = spr.UpdateStatus(tx, participantID, TJoinedParty)
+	err = spr.UpdateStatusBySessionUserID(tx, sessionID, userID, TJoinedParty)
 	if err != nil {
 		t.Error(err)
 	}
