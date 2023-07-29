@@ -314,8 +314,8 @@ func (spr *SessionParticipantRepository) HardDelete(tx *sql.Tx, participantID in
 type SessionChatRepository struct{}
 type SessionChatRepositoryInterface interface {
 	Create(tx *sql.Tx, sessionID, userID int, content string) (int, error)
-	QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error)
-	QueryBySessionIDInRange(tx *sql.Tx, sessionID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error)
+	QueryByUserIDInRange(tx *sql.Tx, userID int, inRange TQuerySessionChatInRange) ([]*TQuerySessionChat, error)
+	QueryBySessionIDInRange(tx *sql.Tx, sessionID int, inRange TQuerySessionChatInRange) ([]*TQuerySessionChat, error)
 	QueryLastChatInActiveSessions(tx *sql.Tx, userID int) ([]*TQueryLastChat, error)
 	HardDelete(tx *sql.Tx, chatID int) error
 }
@@ -330,7 +330,11 @@ type TQuerySessionChat struct {
 	Deleted   bool
 }
 
-func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error) {
+type TQuerySessionChatInRange struct {
+	startDate, endDate time.Time
+}
+
+func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, inRange TQuerySessionChatInRange) ([]*TQuerySessionChat, error) {
 	// query
 	query := `
 	SELECT c.id, c.chat_session_id, c.user_id, c.content, c.create_at, c.update_at, c.deleted 
@@ -366,7 +370,7 @@ func (cr *SessionChatRepository) QueryByUserIDInRange(tx *sql.Tx, userID int, in
 	return results, nil
 }
 
-func (cr *SessionChatRepository) QueryBySessionIDInRange(tx *sql.Tx, sessionID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error) {
+func (cr *SessionChatRepository) QueryBySessionIDInRange(tx *sql.Tx, sessionID int, inRange TQuerySessionChatInRange) ([]*TQuerySessionChat, error) {
 	// query
 	query := `
 	SELECT id, chat_session_id, user_id, content, create_at, update_at, deleted 

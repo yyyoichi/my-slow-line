@@ -292,10 +292,7 @@ func testSessionChat(t *testing.T, repos *SessionRepositories, userID int) {
 	defer scr.HardDelete(tx, chatID2)
 	defer scr.HardDelete(tx, chatID3)
 
-	inRange := struct {
-		startDate time.Time
-		endDate   time.Time
-	}{
+	inRange := TQuerySessionChatInRange{
 		startDate: time.Now().Add(-1 * time.Hour),
 		endDate:   time.Now().Add(1 * time.Hour),
 	}

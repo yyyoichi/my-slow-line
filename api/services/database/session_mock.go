@@ -310,7 +310,7 @@ type SessionChatRepositoryMock struct {
 	mock *SessionDataMock
 }
 
-func (cr *SessionChatRepositoryMock) QueryByUserIDInRange(tx *sql.Tx, userID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error) {
+func (cr *SessionChatRepositoryMock) QueryByUserIDInRange(tx *sql.Tx, userID int, inRange TQuerySessionChatInRange) ([]*TQuerySessionChat, error) {
 	targetSessionID := make(map[int]bool)
 	for party := range cr.mock.genParticipants() {
 		if party.UserID == userID && party.Status == TJoinedParty {
@@ -367,7 +367,7 @@ func (cr *SessionChatRepositoryMock) QueryLastChatInActiveSessions(tx *sql.Tx, u
 	return results, nil
 }
 
-func (cr *SessionChatRepositoryMock) QueryBySessionIDInRange(tx *sql.Tx, sessionID int, inRange struct{ startDate, endDate time.Time }) ([]*TQuerySessionChat, error) {
+func (cr *SessionChatRepositoryMock) QueryBySessionIDInRange(tx *sql.Tx, sessionID int, inRange TQuerySessionChatInRange) ([]*TQuerySessionChat, error) {
 	var chats []*TQuerySessionChat
 	for chat := range cr.mock.genChats() {
 		if chat.SessionID == sessionID {
