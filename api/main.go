@@ -65,7 +65,7 @@ func handler() {
 	chs.HandleFunc("/:sessionID", handlers.NewChatsAtHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPost)
 
 	phs := me.PathPrefix("/participants").Subrouter()
-	phs.HandleFunc("/:sessionID", handlers.NewParticipantsAtHandlers()).Methods(http.MethodPost, http.MethodPut)
+	phs.HandleFunc("/:sessionID", handlers.NewParticipantsAtHandlers(UseSessionServicesFunc)).Methods(http.MethodPost, http.MethodPut)
 
 	api.Use(middleware.CROSMiddleware)
 	api.Use(middleware.CSRFMiddleware)
