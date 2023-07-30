@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"errors"
+	"time"
 )
 
 type MockFRecruitmentRepository struct {
@@ -40,6 +41,7 @@ func (m *MockFRecruitmentRepository) Update(uuid string, message string, deleted
 				// UUIDが一致するRecruitmentを見つけたら更新する
 				recruitments[i].Message = message
 				recruitments[i].Deleted = deleted
+				recruitments[i].UpdateAt = time.Now()
 				return nil
 			}
 		}
@@ -50,10 +52,16 @@ func (m *MockFRecruitmentRepository) Update(uuid string, message string, deleted
 // Create is a mock method that creates new Recruitment information for a given user ID
 func (m *MockFRecruitmentRepository) Create(userId int, uuid, message string) error {
 	recruitments := m.RecruitmentByID[userId]
+	id := m.getLen() + 1
 	newRecruitment := TFRecruitment{
-		Uuid:    uuid,
-		Message: message,
-		Deleted: false,
+		id,
+		userId,
+		uuid,
+		message,
+		time.Now(),
+		time.Now(),
+		false,
+		0,
 	}
 	m.RecruitmentByID[userId] = append(recruitments, newRecruitment)
 	return nil
@@ -63,4 +71,12 @@ func (m *MockFRecruitmentRepository) Create(userId int, uuid, message string) er
 func (m *MockFRecruitmentRepository) DeleteAll(userId int) error {
 	delete(m.RecruitmentByID, userId)
 	return nil
+}
+
+func (m *MockFRecruitmentRepository) getLen() int {
+	length := 0
+	for _, recruits := range m.RecruitmentByID {
+		length += len(recruits)
+	}
+	return length
 }
