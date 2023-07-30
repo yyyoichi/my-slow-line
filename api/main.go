@@ -61,8 +61,8 @@ func handler() {
 	ses.HandleFunc("/:sessionID", handlers.NewSessionAtHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPut)
 
 	chs := me.PathPrefix("/chats").Subrouter()
-	chs.HandleFunc("", handlers.NewChatsHandlers()).Methods(http.MethodGet)
-	chs.HandleFunc("/:sessionID", handlers.NewChatsAtHandlers()).Methods(http.MethodGet, http.MethodPost)
+	chs.HandleFunc("", handlers.NewChatsHandlers(UseSessionServicesFunc)).Methods(http.MethodGet)
+	chs.HandleFunc("/:sessionID", handlers.NewChatsAtHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPost)
 
 	phs := me.PathPrefix("/participants").Subrouter()
 	phs.HandleFunc("/:sessionID", handlers.NewParticipantsAtHandlers()).Methods(http.MethodPost, http.MethodPut)

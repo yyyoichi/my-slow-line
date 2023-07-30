@@ -1,18 +1,26 @@
 package handlers
 
 import (
+	"encoding/json"
+	"himakiwa/handlers/utils"
+	"himakiwa/services/sessions"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 ///////////////////////////////////
 ///////// chats handlers //////////
 ///////////////////////////////////
 
-type ChatsHandlers struct{}
+type ChatsHandlers struct {
+	Use sessions.UseSessionServicesFunc
+}
 
-func NewChatsHandlers() func(http.ResponseWriter, *http.Request) {
-	ch := &ChatsHandlers{}
+func NewChatsHandlers(use sessions.UseSessionServicesFunc) func(http.ResponseWriter, *http.Request) {
+	ch := &ChatsHandlers{use}
 	return ch.ChatsHandlers
 }
 
@@ -31,7 +39,6 @@ type GetChatsResp struct {
 	SessionName string    `json:"sessionName"`
 	SessionID   int       `json:"sesseionID"`
 	UserID      int       `json:"userID"`
-	UserName    string    `json:"userName"`
 	ID          int       `json:"id"`
 	Content     string    `json:"content"`
 	CreateAt    time.Time `json:"createAt"`
@@ -40,16 +47,53 @@ type GetChatsResp struct {
 }
 
 func (ch *ChatsHandlers) GetChatsHandler(w http.ResponseWriter, r *http.Request) {
+	// read context
+	userID, err := strconv.Atoi(utils.ReadUserContext(r))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// session services
+	sessionServices := ch.Use(userID)
+	lastChats, err := sessionServices.GetLastChatInActiveSessions()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//map
+	resp := []GetChatsResp{}
+	for _, chat := range lastChats {
+		rs := GetChatsResp{
+			chat.SessionName,
+			chat.SessionID,
+			chat.UserID,
+			chat.ID,
+			chat.Content,
+			chat.CreateAt,
+			chat.UpdateAt,
+			chat.Deleted,
+		}
+		resp = append(resp, rs)
+	}
+	// resp
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 ///////////////////////////////////
 //////// chats at handlers ////////
 ///////////////////////////////////
 
-type ChatsAtHandlers struct{}
+type ChatsAtHandlers struct {
+	Use sessions.UseSessionServicesFunc
+}
 
-func NewChatsAtHandlers() func(http.ResponseWriter, *http.Request) {
-	cah := &ChatsAtHandlers{}
+func NewChatsAtHandlers(use sessions.UseSessionServicesFunc) func(http.ResponseWriter, *http.Request) {
+	cah := &ChatsAtHandlers{use}
 	return cah.ChatsAtHandlers
 }
 
@@ -66,7 +110,7 @@ func (cah *ChatsAtHandlers) ChatsAtHandlers(w http.ResponseWriter, r *http.Reque
 
 // get chats in 48hours
 
-type GetChatsAtHandlerResp struct {
+type GetChatsAtResp struct {
 	ID        int       `json:"id"`
 	SessionID int       `json:"sessionID"`
 	UserID    int       `json:"userID"`
@@ -77,14 +121,96 @@ type GetChatsAtHandlerResp struct {
 }
 
 func (cah *ChatsAtHandlers) GetChatsAtHandler(w http.ResponseWriter, r *http.Request) {
+	// read param
+	vars := mux.Vars(r)
+	sessionStrID := vars["sessionID"]
+	if sessionStrID == "" {
+		http.Error(w, ErrNotExistRecruit.Error(), http.StatusInternalServerError)
+		return
+	}
+	sessionID, err := strconv.Atoi(sessionStrID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// read context
+	userID, err := strconv.Atoi(utils.ReadUserContext(r))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// session services
+	sessionServices := cah.Use(userID)
+	chats, err := sessionServices.GetChatsAtIn48Hours(sessionID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// map
+	resp := []GetChatsAtResp{}
+	for _, chat := range chats {
+		rs := GetChatsAtResp{
+			chat.ID,
+			chat.SessionID,
+			chat.UserID,
+			chat.Content,
+			chat.CreateAt,
+			chat.UpdateAt,
+			chat.Deleted,
+		}
+		resp = append(resp, rs)
+	}
+	// resp
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // send chat
 
-type PostChatAtHandlerBody struct {
-	UserID  int    `validate:"required"`
+type PostChatAtBody struct {
 	Content string `validate:"required"`
 }
 
 func (cah *ChatsAtHandlers) PostChatsAtHandler(w http.ResponseWriter, r *http.Request) {
+	// parse body
+	b := &PostChatAtBody{}
+	if err := utils.DecodeBody(r, b); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// read param
+	vars := mux.Vars(r)
+	sessionStrID := vars["sessionID"]
+	if sessionStrID == "" {
+		http.Error(w, ErrNotExistRecruit.Error(), http.StatusInternalServerError)
+		return
+	}
+	sessionID, err := strconv.Atoi(sessionStrID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// read context
+	userID, err := strconv.Atoi(utils.ReadUserContext(r))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// session services
+	sessionServices := cah.Use(userID)
+
+	err = sessionServices.SendChatAt(sessionID, b.Content)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
