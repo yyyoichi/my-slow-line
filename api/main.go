@@ -7,6 +7,7 @@ import (
 	"himakiwa/handlers"
 	"himakiwa/handlers/middleware"
 	"himakiwa/services/database"
+	"himakiwa/services/sessions"
 	"io"
 	"log"
 	"mime"
@@ -55,8 +56,9 @@ func handler() {
 	wp.HandleFunc("/subscription", handlers.PushSubscriptionHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
 
 	ses := me.PathPrefix("/sessions").Subrouter()
-	ses.HandleFunc("", handlers.NewSessionsHandlers()).Methods(http.MethodGet, http.MethodPost)
-	ses.HandleFunc("/:sessionID", handlers.NewSessionAtHandlers()).Methods(http.MethodGet, http.MethodPut)
+	UseSessionServicesFunc := sessions.NewSessionServices()
+	ses.HandleFunc("", handlers.NewSessionsHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPost)
+	ses.HandleFunc("/:sessionID", handlers.NewSessionAtHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPut)
 
 	chs := me.PathPrefix("/chats").Subrouter()
 	chs.HandleFunc("", handlers.NewChatsHandlers()).Methods(http.MethodGet)

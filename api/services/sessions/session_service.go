@@ -12,14 +12,20 @@ var (
 	ErrNoFoundUUID         = errors.New("not found uuid")
 )
 
+type UseSessionServicesFunc func(loginID int) *SessionServices
+
 type SessionServices struct {
 	repositories          *database.SessionRepositories
 	recruitmentRepository database.FRecruitmentRepositoryInterface
 	loginUserID           int
 }
 
-func NewSessionServices(loginUserID int) *SessionServices {
-	return &SessionServices{database.NewSessionRepositories(), loginUserID}
+func NewSessionServices() UseSessionServicesFunc {
+	ss := &SessionServices{repositories: database.NewSessionRepositories(), recruitmentRepository: &database.FRecruitmentRepository{}}
+	return func(loginID int) *SessionServices {
+		ss.loginUserID = loginID
+		return ss
+	}
 }
 
 // get active and archived sessions
@@ -70,13 +76,13 @@ func (ss *SessionServices) CreateSession(publicKey, name string, userID int) err
 }
 
 // get session and participants
-func (ss *SessionServices) GetSessionAt(sessionID, userID int) (*database.TQuerySessions, []*database.TSessionParticipant, error) {
+func (ss *SessionServices) GetSessionAt(sessionID int) (*database.TQuerySessions, []*database.TSessionParticipant, error) {
 	var session *database.TQuerySessions
 	var participants []*database.TSessionParticipant
 	err := database.WithTransaction(func(tx *sql.Tx) error {
 		// get session
 		var err error
-		session, err = ss.repositories.SessionRepository.QueryBySessionUserID(tx, sessionID, userID)
+		session, err = ss.repositories.SessionRepository.QueryBySessionUserID(tx, sessionID, ss.loginUserID)
 		if err != nil {
 			return err
 		}

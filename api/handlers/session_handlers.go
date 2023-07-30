@@ -1,19 +1,27 @@
 package handlers
 
 import (
+	"encoding/json"
+	"himakiwa/handlers/utils"
 	"himakiwa/services/database"
+	"himakiwa/services/sessions"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 ///////////////////////////////////
 /////// sessions handlers /////////
 ///////////////////////////////////
 
-type SessionsHandlers struct{}
+type SessionsHandlers struct {
+	Use sessions.UseSessionServicesFunc
+}
 
-func NewSessionsHandlers() func(http.ResponseWriter, *http.Request) {
-	sh := &SessionsHandlers{}
+func NewSessionsHandlers(use sessions.UseSessionServicesFunc) func(http.ResponseWriter, *http.Request) {
+	sh := &SessionsHandlers{use}
 	return sh.SessionsHandlers
 }
 
@@ -42,7 +50,40 @@ type GetSessionsResp struct {
 }
 
 func (sh *SessionsHandlers) GetSessionsHandler(w http.ResponseWriter, r *http.Request) {
+	// read context
+	userID, err := strconv.Atoi(utils.ReadUserContext(r))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// session services
+	sessionServices := sh.Use(userID)
+	sessions, err := sessionServices.GetActiveOrArchivedSessions()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
+	var resp = []GetSessionsResp{}
+	for _, session := range sessions {
+		rs := GetSessionsResp{
+			session.ID,
+			session.Name,
+			session.PublicKey,
+			session.SessionStatus,
+			session.Status,
+			session.CreateAt,
+			session.UpdateAt,
+			session.Deleted,
+		}
+		resp = append(resp, rs)
+	}
+	//resp
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // create
@@ -54,20 +95,48 @@ type PostSessionsBody struct {
 }
 
 func (sh *SessionsHandlers) PostSessionsHandler(w http.ResponseWriter, r *http.Request) {
+	// parse body
+	b := &PostSessionsBody{}
+	if err := utils.DecodeBody(r, b); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	// get user by recruitUUID
+	// read context
+	userID, err := strconv.Atoi(utils.ReadUserContext(r))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// session services
+	sessionServices := sh.Use(userID)
 
-	// create session and invite user
+	// get recruit user data
+	recruit, err := sessionServices.LookUpRecruitment(b.RecruitUUID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = sessionServices.CreateSession(b.PublicKey, b.SessionName, recruit.UserId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 ////////////////////////////////////////////////////
 /// session at handlers (sessions/{sessionID}) /////
 ////////////////////////////////////////////////////
 
-type SessionAtHandlers struct{}
+type SessionAtHandlers struct {
+	Use sessions.UseSessionServicesFunc
+}
 
-func NewSessionAtHandlers() func(http.ResponseWriter, *http.Request) {
-	sah := &SessionAtHandlers{}
+func NewSessionAtHandlers(use sessions.UseSessionServicesFunc) func(http.ResponseWriter, *http.Request) {
+	sah := &SessionAtHandlers{use}
 	return sah.SessionAtHandlers
 }
 
@@ -90,7 +159,7 @@ type SessionAtResp struct {
 	PublicKey     string                      `json:"publicKey"`
 	SessionStatus database.TSessionStatus     `json:"sessionStatus"`
 	Status        database.TParticipantStatus `json:"status"`
-	Participants  TSeesionAtParticipantResp   `json:"participants"`
+	Participants  []TSeesionAtParticipantResp `json:"participants"`
 	CreateAt      time.Time                   `json:"createAt"`
 	UpdateAt      time.Time                   `json:"updateAt"`
 	Deleted       bool                        `json:"deleted"`
@@ -105,6 +174,68 @@ type TSeesionAtParticipantResp struct {
 }
 
 func (sh *SessionAtHandlers) GetSessionAtHandler(w http.ResponseWriter, r *http.Request) {
+	// read param
+	vars := mux.Vars(r)
+	sessionStrID := vars["sessionID"]
+	if sessionStrID == "" {
+		http.Error(w, ErrNotExistRecruit.Error(), http.StatusInternalServerError)
+		return
+	}
+	sessionID, err := strconv.Atoi(sessionStrID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// read context
+	userID, err := strconv.Atoi(utils.ReadUserContext(r))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// session services
+	sessionServices := sh.Use(userID)
+
+	// get session
+	session, participants, err := sessionServices.GetSessionAt(sessionID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// map participants
+	respParticipants := []TSeesionAtParticipantResp{}
+	for _, party := range participants {
+		rspp := TSeesionAtParticipantResp{
+			party.ID,
+			party.UserID,
+			party.Status,
+			party.CreateAt,
+			party.UpdateAt,
+			party.Deleted,
+		}
+		respParticipants = append(respParticipants, rspp)
+	}
+
+	// map resp
+	resp := SessionAtResp{
+		session.ID,
+		session.Name,
+		session.PublicKey,
+		session.SessionStatus,
+		session.Status,
+		respParticipants,
+		session.CreateAt,
+		session.UpdateAt,
+		session.Deleted,
+	}
+
+	//resp
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // edit
@@ -114,4 +245,40 @@ type PostSessionAtBody struct {
 }
 
 func (sh *SessionAtHandlers) PutSessionAtHandler(w http.ResponseWriter, r *http.Request) {
+	// parse body
+	b := &PostSessionAtBody{}
+	if err := utils.DecodeBody(r, b); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// read param
+	vars := mux.Vars(r)
+	sessionStrID := vars["sessionID"]
+	if sessionStrID == "" {
+		http.Error(w, ErrNotExistRecruit.Error(), http.StatusInternalServerError)
+		return
+	}
+	sessionID, err := strconv.Atoi(sessionStrID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// read context
+	userID, err := strconv.Atoi(utils.ReadUserContext(r))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// session services
+	sessionServices := sh.Use(userID)
+
+	err = sessionServices.UpdateSessionNameAt(sessionID, b.SessionName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
