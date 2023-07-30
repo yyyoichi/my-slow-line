@@ -9,7 +9,7 @@ import (
 //////./ mock services /////////////
 ////////////////////////////////////
 
-func NewSessionServicesMock() *SessionServices {
+func NewSessionServicesMock() UseSessionServicesFunc {
 	userID1 := 1
 	userID2 := 2
 	tx := &sql.Tx{}
@@ -50,5 +50,8 @@ func NewSessionServicesMock() *SessionServices {
 	// exp session6
 	ss.recruitmentRepository.Create(userID2, "Test UUID of userID2", "Test recruitment")
 
-	return ss
+	return func(loginID int) *SessionServices {
+		ss.loginUserID = loginID
+		return ss
+	}
 }
