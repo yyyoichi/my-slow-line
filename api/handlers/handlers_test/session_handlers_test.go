@@ -10,6 +10,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gorilla/mux"
 )
 
 func TestGetSessions(t *testing.T) {
@@ -38,7 +40,6 @@ func TestGetSessions(t *testing.T) {
 		// Create a response recorder to record the response
 		rr := httptest.NewRecorder()
 
-		// Call the postRecruitmentsHandler
 		http.HandlerFunc(sessionsHandlers).ServeHTTP(rr, req)
 
 		// Check the response status code
@@ -112,6 +113,81 @@ func TestPostSessions(t *testing.T) {
 
 		if session.Name != tt.expName {
 			t.Errorf("Expected session.Name is '%s', but got='%s'", tt.expName, session.Name)
+		}
+	}
+}
+
+func TestGetSessionAt(t *testing.T) {
+	UseSessionServicesFunc := sessions.NewSessionServicesMock()
+	sessionAtHandlers := handlers.NewSessionAtHandlers(UseSessionServicesFunc)
+
+	// Create a new test request with a mock user context
+	req, err := http.NewRequest("GET", "/sessions/3", nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+	// Set a dummy user context for testing
+	req = utils.WithUserContext(req, "1")
+
+	// Create a response recorder to record the response
+	rr := httptest.NewRecorder()
+
+	r := mux.NewRouter()
+	r.HandleFunc("/sessions/{sessionID}", sessionAtHandlers).Methods(http.MethodGet)
+	r.ServeHTTP(rr, req)
+
+	// Check the response status code
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, but got %d", http.StatusOK, rr.Code)
+	}
+	responseBody := rr.Body.Bytes()
+	var result handlers.SessionAtResp
+
+	// Unmarshal the response body into the GetSessionsResp struct
+	err = json.Unmarshal(responseBody, &result)
+	if err != nil {
+		t.Errorf("Error parsing response JSON: %s", err.Error())
+		return
+	}
+
+	if result.Name != "Session3" {
+		t.Errorf("Excepted Name is 'Session3', but got='%s'", result.Name)
+	}
+
+	if len(result.Participants) != 2 {
+		t.Errorf("Expected len(result.Participants) is 2, but got='%d'", len(result.Participants))
+	}
+}
+
+func TestPostSessionAt(t *testing.T) {
+	test := []struct {
+		userID        string
+		expStatusCode int
+	}{
+		{"1", http.StatusOK},
+		{"2", http.StatusInternalServerError},
+	}
+
+	for _, tt := range test {
+		UseSessionServicesFunc := sessions.NewSessionServicesMock()
+		sessionAtHandlers := handlers.NewSessionAtHandlers(UseSessionServicesFunc)
+
+		// create Request
+		body := `{"sessionName": "New Session"}`
+		req, err := http.NewRequest("PUT", "/sessions/1", strings.NewReader(body))
+		if err != nil {
+			t.Fatalf("Failed to create request: %v", err)
+		}
+		req = utils.WithUserContext(req, tt.userID)
+		rr := httptest.NewRecorder()
+
+		r := mux.NewRouter()
+		r.HandleFunc("/sessions/{sessionID}", sessionAtHandlers).Methods(http.MethodPut)
+		r.ServeHTTP(rr, req)
+
+		// Check the response status code
+		if rr.Code != tt.expStatusCode {
+			t.Errorf("Expected status code %d, but got %d", tt.expStatusCode, rr.Code)
 		}
 	}
 }
