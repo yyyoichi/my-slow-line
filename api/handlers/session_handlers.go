@@ -240,13 +240,13 @@ func (sh *SessionAtHandlers) GetSessionAtHandler(w http.ResponseWriter, r *http.
 
 // edit
 
-type PostSessionAtBody struct {
+type PutSessionAtBody struct {
 	SessionName string `validate:"required"`
 }
 
 func (sh *SessionAtHandlers) PutSessionAtHandler(w http.ResponseWriter, r *http.Request) {
 	// parse body
-	b := &PostSessionAtBody{}
+	b := &PutSessionAtBody{}
 	if err := utils.DecodeBody(r, b); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
