@@ -43,7 +43,7 @@ func handler() {
 	api.HandleFunc("/signin", ah.SigninHandler).Methods(http.MethodPost)
 	api.HandleFunc("/login", ah.LoginHandler).Methods(http.MethodPost)
 	api.HandleFunc("/codein", ah.VerificateHandler).Methods(http.MethodPost)
-	api.HandleFunc("/recruitments/:recruitmentUUID", NotFoundHandler).Methods(http.MethodGet)
+	api.HandleFunc("/recruitments/{recruitmentUUID}", NotFoundHandler).Methods(http.MethodGet)
 
 	me := api.PathPrefix("/me").Subrouter()
 	me.HandleFunc("/", handlers.MeHandler).Methods(http.MethodGet)
@@ -58,14 +58,14 @@ func handler() {
 	ses := me.PathPrefix("/sessions").Subrouter()
 	UseSessionServicesFunc := sessions.NewSessionServices()
 	ses.HandleFunc("", handlers.NewSessionsHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPost)
-	ses.HandleFunc("/:sessionID", handlers.NewSessionAtHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPut)
+	ses.HandleFunc("/{sessionID}", handlers.NewSessionAtHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPut)
 
 	chs := me.PathPrefix("/chats").Subrouter()
 	chs.HandleFunc("", handlers.NewChatsHandlers(UseSessionServicesFunc)).Methods(http.MethodGet)
-	chs.HandleFunc("/:sessionID", handlers.NewChatsAtHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPost)
+	chs.HandleFunc("/{sessionID}", handlers.NewChatsAtHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPost)
 
 	phs := me.PathPrefix("/participants").Subrouter()
-	phs.HandleFunc("/:sessionID", handlers.NewParticipantsAtHandlers(UseSessionServicesFunc)).Methods(http.MethodPost, http.MethodPut)
+	phs.HandleFunc("/{sessionID}", handlers.NewParticipantsAtHandlers(UseSessionServicesFunc)).Methods(http.MethodPost, http.MethodPut)
 
 	api.Use(middleware.CROSMiddleware)
 	api.Use(middleware.CSRFMiddleware)
