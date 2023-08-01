@@ -333,22 +333,32 @@ func (cr *SessionChatRepositoryMock) QueryLastChatInActiveSessions(tx *sql.Tx, u
 	if err != nil {
 		return nil, err
 	}
-	chats, found := cr.mock.chatByUserID[userID]
-	if !found {
-		return nil, sql.ErrNoRows
-	}
 	getAt := func(sessionID int) *TQuerySessionChat {
-		for i := len(chats) - 1; i >= 0; i-- {
-			chat := chats[i]
-			if chat.SessionID == sessionID {
-				return chat
+		targetChats := []*TQuerySessionChat{}
+		for _, chats := range cr.mock.chatByUserID {
+			for i := len(chats) - 1; i >= 0; i-- {
+				chat := chats[i]
+				if chat.SessionID == sessionID {
+					targetChats = append(targetChats, chat)
+				}
 			}
 		}
-		return nil
+		if len(targetChats) == 0 {
+			return nil
+		}
+		// sort id desc
+		sort.Slice(targetChats, func(i, j int) bool {
+			return targetChats[i].ID > targetChats[j].ID
+		})
+
+		return targetChats[0]
 	}
 	var results []*TQueryLastChat
 	for _, session := range sessions {
 		chat := getAt(session.ID)
+		if chat == nil {
+			continue
+		}
 		lastChat := &TQueryLastChat{
 			session.Name,
 			session.ID,
@@ -381,7 +391,7 @@ func (cr *SessionChatRepositoryMock) QueryBySessionIDInRange(tx *sql.Tx, session
 
 // create
 func (scr *SessionChatRepositoryMock) Create(tx *sql.Tx, sessionID, userID int, content string) (int, error) {
-	id := len(scr.mock.chatByUserID[userID]) + 1
+	id := scr.getLen() + 1
 	chat := &TQuerySessionChat{
 		ID:        id,
 		SessionID: sessionID,
@@ -408,4 +418,12 @@ func (cr *SessionChatRepositoryMock) HardDelete(tx *sql.Tx, chatID int) error {
 		cr.mock.chatByUserID[userID] = c
 	}
 	return nil
+}
+
+func (cr *SessionChatRepositoryMock) getLen() int {
+	length := 0
+	for _, chats := range cr.mock.chatByUserID {
+		length += len(chats)
+	}
+	return length
 }
