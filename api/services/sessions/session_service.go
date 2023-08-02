@@ -10,6 +10,7 @@ import (
 var (
 	ErrCannotAccessSession = errors.New("cannot access session")
 	ErrNoFoundUUID         = errors.New("not found uuid")
+	ErrCannotUpdateStatus  = errors.New("cannot access participant session")
 )
 
 type UseSessionServicesFunc func(loginID int) *SessionServices
@@ -170,6 +171,15 @@ func (ss *SessionServices) SendChatAt(sessionID int, content string) error {
 
 // update participant status
 func (ss *SessionServices) UpdateParticipantStatusAt(sessionID, userID int, status database.TParticipantStatus) error {
+	if ss.loginUserID == userID {
+		return database.WithTransaction(func(tx *sql.Tx) error {
+			err := ss.repositories.SessionParticipantRepository.UpdateStatusBySessionUserID(tx, sessionID, userID, status)
+			return err
+		})
+	}
+	if status != database.TRejectedParty {
+		return ErrCannotUpdateStatus
+	}
 	return database.WithTransaction(func(tx *sql.Tx) error {
 		ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, ss.loginUserID, []database.TParticipantStatus{database.TJoinedParty})
 		if err != nil {
