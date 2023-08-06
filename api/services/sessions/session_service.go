@@ -193,3 +193,21 @@ func (ss *SessionServices) UpdateParticipantStatusAt(sessionID, userID int, stat
 		return err
 	})
 }
+
+func (ss *SessionServices) IsJoined(sessionID, userID int) (bool, error) {
+	joined := []database.TParticipantStatus{database.TJoinedParty}
+	ok := false
+	err := database.WithTransaction(func(tx *sql.Tx) error {
+		var err error
+		ok, err = ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, userID, joined)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return false, err
+	}
+	return ok, nil
+}
