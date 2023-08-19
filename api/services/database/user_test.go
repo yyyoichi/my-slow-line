@@ -167,6 +167,12 @@ func testUser(t *testing.T, repos *UserRepositories) {
 	if !user1.TwoVerificatedAt.Valid {
 		t.Error("Expected TwoVerificatedAt.Valid is true, but got='false'")
 	}
+
+	// create double email
+	_, err = ur.Create(tx, expUser1.Name, expUser1.Email, expUser1.HashedPass, expUser1.VCode)
+	if err == nil {
+		t.Error("Expecte err but got='nil'")
+	}
 }
 
 func userIsEqual(t *testing.T, act, exp *TQueryUser) {

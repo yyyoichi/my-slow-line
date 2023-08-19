@@ -79,6 +79,12 @@ func (ur *UserRepositoryMock) QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQeu
 }
 
 func (ur *UserRepositoryMock) Create(tx *sql.Tx, name, email, hashedPass, vcode string) (int, error) {
+	// check double email
+	for _, user := range ur.mock.userByID {
+		if user.Email == email {
+			return 0, sql.ErrNoRows
+		}
+	}
 	id := 0
 	// the largest number to get next id
 	for ID := range ur.mock.userByID {
