@@ -186,6 +186,111 @@ func testUser(t *testing.T, repos *UserRepositories) {
 	}
 }
 
+func TestRecruitment(t *testing.T) {
+	testRecruitment(t, NewUserRepositories())
+}
+func TestRecruitmentMock(t *testing.T) {
+	testRecruitment(t, NewUserRepositoriesMock())
+}
+
+func testRecruitment(t *testing.T, repos *UserRepositories) {
+	tx, err := DB.Begin()
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// create
+	testingUser := CreateTestingUser(t, tx, repos)
+	defer testingUser.Delete(t)
+	userID := testingUser.User.ID
+
+	rr := repos.RecruitmentRepository
+
+	// create and query test
+	uuid1 := "abc"
+	id1, err := rr.Create(tx, userID, uuid1, "Hello")
+	if err != nil {
+		t.Error(err)
+	}
+	recruit1, err := rr.QueryByUUID(tx, uuid1)
+	if err != nil {
+		t.Error(err)
+	}
+	expRecruit1 := &TQueryRecruitment{
+		id1,
+		userID,
+		uuid1,
+		"Hello",
+		time.Now(),
+		time.Now(),
+		false,
+	}
+	recruitmentIsEqual(t, recruit1, expRecruit1)
+	recruitmentIsNotNil(t, recruit1)
+
+	recruits, err := rr.QueryByUserID(tx, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(recruits) != 1 {
+		t.Errorf("Expected len(recruits) is 1, but got='%d'", len(recruits))
+	}
+	recruit1 = recruits[0]
+	recruitmentIsEqual(t, recruit1, expRecruit1)
+	recruitmentIsNotNil(t, recruit1)
+
+	// update
+	err = rr.Update(tx, uuid1, "Hi", true)
+	if err != nil {
+		t.Error(err)
+	}
+	expRecruit1.Message = "Hi"
+	expRecruit1.Deleted = true
+	recruit1, err = rr.QueryByUUID(tx, uuid1)
+	if err != nil {
+		t.Error(err)
+	}
+	recruitmentIsEqual(t, recruit1, expRecruit1)
+	recruitmentIsNotNil(t, recruit1)
+
+	// create
+	uuid2 := "aaa"
+	_, err = rr.Create(tx, userID, uuid2, "Hi")
+	if err != nil {
+		t.Error(err)
+	}
+	recruits, err = rr.QueryByUserID(tx, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(recruits) != 2 {
+		t.Errorf("Expected len(recruits) is 2, but got='%d'", len(recruits))
+	}
+
+	// delete
+	err = rr.Delete(tx, uuid1)
+	if err != nil {
+		t.Error(err)
+	}
+	err = rr.Delete(tx, uuid2)
+	if err != nil {
+		t.Error(err)
+	}
+	recruits, err = rr.QueryByUserID(tx, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(recruits) != 0 {
+		t.Errorf("Expected len(recruits) is 0, but got='%d'", len(recruits))
+	}
+	t.Log("Done")
+}
+
 func userIsEqual(t *testing.T, act, exp *TQueryUser) {
 	if act.ID != exp.ID {
 		t.Errorf("Expected Id is %d but got='%d'", exp.ID, act.ID)
@@ -232,5 +337,41 @@ func userIsNotNil(t *testing.T, u *TQueryUser) {
 	}
 	if u.CreateAt.IsZero() {
 		t.Error("CreateAt is zero")
+	}
+}
+
+func recruitmentIsEqual(t *testing.T, act, exp *TQueryRecruitment) {
+	if act.UserID != exp.UserID {
+		t.Errorf("Expected UserID is '%d', but got='%d'", exp.UserID, act.UserID)
+	}
+	if act.UUID != exp.UUID {
+		t.Errorf("Expected UUID is '%s', but got='%s'", exp.UUID, act.UUID)
+	}
+	if act.Message != exp.Message {
+		t.Errorf("Expected Message is '%s', but got='%s'", exp.Message, act.Message)
+	}
+	if act.Deleted != exp.Deleted {
+		t.Errorf("Expected Deleted is '%v', but got='%v'", exp.Deleted, act.Deleted)
+	}
+}
+
+func recruitmentIsNotNil(t *testing.T, r *TQueryRecruitment) {
+	if r.ID == 0 {
+		t.Error("Expected ID is not nil, but got='nil'")
+	}
+	if r.UserID == 0 {
+		t.Error("Expected UserID is not nil, but got='nil'")
+	}
+	if r.UUID == "" {
+		t.Error("Expected UUID is not nil, but got='nil'")
+	}
+	if r.Message == "" {
+		t.Error("Expected Message is not nil, but got='nil'")
+	}
+	if r.CreateAt.IsZero() {
+		t.Error("Expected CreateAt is not nil, but got='nil'")
+	}
+	if r.UpdateAt.IsZero() {
+		t.Error("Expected UpdateAt is not nil, but got='nil'")
 	}
 }
