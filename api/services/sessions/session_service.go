@@ -9,20 +9,18 @@ import (
 
 var (
 	ErrCannotAccessSession = errors.New("cannot access session")
-	ErrNoFoundUUID         = errors.New("not found uuid")
 	ErrCannotUpdateStatus  = errors.New("cannot access participant session")
 )
 
 type UseSessionServicesFunc func(loginID int) *SessionServices
 
 type SessionServices struct {
-	repositories          *database.SessionRepositories
-	recruitmentRepository database.FRecruitmentRepositoryInterface
-	loginUserID           int
+	repositories *database.SessionRepositories
+	loginUserID  int
 }
 
 func NewSessionServices() UseSessionServicesFunc {
-	ss := &SessionServices{repositories: database.NewSessionRepositories(), recruitmentRepository: &database.FRecruitmentRepository{}}
+	ss := &SessionServices{repositories: database.NewSessionRepositories()}
 	return func(loginID int) *SessionServices {
 		ss.loginUserID = loginID
 		return ss
@@ -30,12 +28,12 @@ func NewSessionServices() UseSessionServicesFunc {
 }
 
 // get active and archived sessions
-func (ss *SessionServices) GetActiveOrArchivedSessions() ([]*database.TQuerySessions, error) {
+func (ss *SessionServices) GetActiveOrArchivedSessions() ([]*database.TQuerySession, error) {
 	options := database.TQuerySessionsOptions{
 		InPartyStatus:   []database.TParticipantStatus{database.TJoinedParty, database.TInvitedParty},
 		InSessionStatus: []database.TSessionStatus{database.TActiveSession, database.TArchivedSession},
 	}
-	var sessions []*database.TQuerySessions
+	var sessions []*database.TQuerySession
 	err := database.WithTransaction(func(tx *sql.Tx) error {
 		var err error
 		sessions, err = ss.repositories.SessionRepository.QueryByUserID(tx, ss.loginUserID, options)
@@ -45,19 +43,6 @@ func (ss *SessionServices) GetActiveOrArchivedSessions() ([]*database.TQuerySess
 		return nil, err
 	}
 	return sessions, nil
-}
-
-// get userID data from uuid
-func (ss *SessionServices) LookUpRecruitment(uuid string) (*database.TFRecruitment, error) {
-	recruit, err := ss.recruitmentRepository.QueryByUUID(uuid)
-	if err != nil {
-		return nil, err
-	}
-	if recruit.Deleted {
-		return nil, ErrNoFoundUUID
-	}
-
-	return recruit, nil
 }
 
 // create session and loginUser invite userID
@@ -77,8 +62,8 @@ func (ss *SessionServices) CreateSession(publicKey, name string, userID int) err
 }
 
 // get session and participants
-func (ss *SessionServices) GetSessionAt(sessionID int) (*database.TQuerySessions, []*database.TSessionParticipant, error) {
-	var session *database.TQuerySessions
+func (ss *SessionServices) GetSessionAt(sessionID int) (*database.TQuerySession, []*database.TSessionParticipant, error) {
+	var session *database.TQuerySession
 	var participants []*database.TSessionParticipant
 	err := database.WithTransaction(func(tx *sql.Tx) error {
 		// get session
