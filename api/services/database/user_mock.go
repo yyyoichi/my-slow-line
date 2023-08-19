@@ -6,17 +6,20 @@ import (
 )
 
 type UserDataMock struct {
-	userByID          map[int]*TQueryUser
-	recruitmentByUUID map[string]*TQueryRecruitment
+	userByID                    map[int]*TQueryUser
+	recruitmentByUUID           map[string]*TQueryRecruitment
+	webpushSubscriptionByUserID map[int][]*TQueryWebpushSubscription
 }
 
 func NewUserRepositoriesMock() *UserRepositories {
 	userByID := make(map[int]*TQueryUser)
 	recritmentByUUID := make(map[string]*TQueryRecruitment)
-	mock := &UserDataMock{userByID, recritmentByUUID}
+	webpushSubscriptionByUserID := make(map[int][]*TQueryWebpushSubscription)
+	mock := &UserDataMock{userByID, recritmentByUUID, webpushSubscriptionByUserID}
 	return &UserRepositories{
 		&UserRepositoryMock{mock},
 		&RecruitmentRepositoryMock{mock},
+		&WebpushSubscriptionRepositoryMock{mock},
 	}
 }
 
@@ -209,5 +212,52 @@ func (rr *RecruitmentRepositoryMock) Create(tx *sql.Tx, userID int, uuid, messag
 
 func (rr *RecruitmentRepositoryMock) Delete(tx *sql.Tx, uuid string) error {
 	delete(rr.mock.recruitmentByUUID, uuid)
+	return nil
+}
+
+type WebpushSubscriptionRepositoryMock struct {
+	mock *UserDataMock
+}
+
+func (wsr *WebpushSubscriptionRepositoryMock) QueryByUserID(tx *sql.Tx, userID int) ([]*TQueryWebpushSubscription, error) {
+	subcription, found := wsr.mock.webpushSubscriptionByUserID[userID]
+	if !found {
+		return nil, sql.ErrNoRows
+	}
+	return subcription, nil
+}
+
+func (wsr *WebpushSubscriptionRepositoryMock) Create(tx *sql.Tx, userID int, endpoint, p256dh, auth, userAgent string, expTime *time.Time) (int, error) {
+	id := 0
+	for _, subscriptions := range wsr.mock.webpushSubscriptionByUserID {
+		for _, subscription := range subscriptions {
+			if id < subscription.ID {
+				id = subscription.ID
+			}
+		}
+	}
+	id += 1
+
+	exp := sql.NullTime{}
+	if expTime != nil {
+		exp = sql.NullTime{Time: *expTime, Valid: true}
+	}
+	subscription := &TQueryWebpushSubscription{
+		id,
+		userID,
+		endpoint,
+		p256dh,
+		auth,
+		userAgent,
+		exp,
+		time.Now(),
+	}
+
+	wsr.mock.webpushSubscriptionByUserID[userID] = append(wsr.mock.webpushSubscriptionByUserID[userID], subscription)
+	return id, nil
+}
+
+func (wsr *WebpushSubscriptionRepositoryMock) DeleteAll(tx *sql.Tx, userID int) error {
+	delete(wsr.mock.webpushSubscriptionByUserID, userID)
 	return nil
 }

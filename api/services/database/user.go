@@ -6,14 +6,16 @@ import (
 )
 
 type UserRepositories struct {
-	UserRepository        UserRepositoryInterface
-	RecruitmentRepository RecruitmentRepositoryInterface
+	UserRepository                UserRepositoryInterface
+	RecruitmentRepository         RecruitmentRepositoryInterface
+	WebpushSubscriptionRepository WebpushSubscriptionRepositoryInterface
 }
 
 func NewUserRepositories() *UserRepositories {
 	return &UserRepositories{
 		&UserRepository{},
 		&RecruitmentRepository{},
+		&WebpushSubscriptionRepository{},
 	}
 }
 
@@ -273,6 +275,71 @@ func (rr *RecruitmentRepository) Delete(tx *sql.Tx, uuid string) error {
 	// exec delete row
 	query := `DELETE FROM recruitments WHERE uuid = ?`
 	_, err := tx.Exec(query, uuid)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type WebpushSubscriptionRepository struct{}
+type WebpushSubscriptionRepositoryInterface interface {
+	QueryByUserID(tx *sql.Tx, userID int) ([]*TQueryWebpushSubscription, error)
+	Create(tx *sql.Tx, userID int, endpoint, p256dh, auth, userAgent string, expTime *time.Time) (int, error)
+	DeleteAll(tx *sql.Tx, userID int) error
+}
+
+type TQueryWebpushSubscription struct {
+	ID             int
+	UserID         int
+	Endpoint       string
+	P256dh         string
+	Auth           string
+	UserAgent      string
+	ExpirationTime sql.NullTime
+	CreateAt       time.Time
+}
+
+func (wsr *WebpushSubscriptionRepository) QueryByUserID(tx *sql.Tx, userID int) ([]*TQueryWebpushSubscription, error) {
+	// query
+	query := `SELECT id, user_id, endpoint, p256dh, auth, user_agent, expiration_time, create_at FROM webpush WHERE user_id = ?`
+	rows, err := tx.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// responsed
+	var results []*TQueryWebpushSubscription
+	for rows.Next() {
+		var rlt *TQueryWebpushSubscription
+		if err := rows.Scan(&rlt.ID, &rlt.UserID, &rlt.Endpoint, &rlt.P256dh, &rlt.Auth, &rlt.UserAgent, &rlt.ExpirationTime, &rlt.CreateAt); err != nil {
+			return nil, err
+		}
+		results = append(results, rlt)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (wsr *WebpushSubscriptionRepository) Create(tx *sql.Tx, userID int, endpoint, p256dh, auth, userAgent string, expTime *time.Time) (int, error) {
+	// exec insert
+	query := `INSERT INTO webpush (user_id, endpoint, p256dh, auth, user_agent, expiration_time) VALUES(?, ?, ?, ?, ?, ?, ?)`
+	result, err := tx.Exec(query, userID, endpoint, p256dh, auth, userAgent, expTime)
+	if err != nil {
+		return 0, err
+	}
+
+	// get id
+	id, err := result.LastInsertId()
+	return int(id), err
+}
+
+func (wsr *WebpushSubscriptionRepository) DeleteAll(tx *sql.Tx, userID int) error {
+	// delete
+	query := `DELETE FROM webpush WHERE user_id = ?`
+	_, err := tx.Exec(query, userID)
 	if err != nil {
 		return err
 	}
