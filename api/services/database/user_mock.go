@@ -2,8 +2,67 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 )
+
+type TestingUser struct {
+	User         *TQueryUser
+	ExpUser      *TQueryUser
+	tx           *sql.Tx
+	repositories *UserRepositories
+}
+
+func (tu *TestingUser) Delete() error {
+	err := tu.repositories.UserRepository.HardDeleteByID(tu.tx, tu.User.ID)
+	return err
+}
+func (tu *TestingUser) GetUserRipositories() *UserRepositories {
+	return tu.repositories
+}
+
+// counter of user to escape double email and name in db
+var TestUserCount = 0
+
+// create user in database and return created user, expected userdata and delete function.
+func CreateTestingUser(tx *sql.Tx, urs *UserRepositories) (*TestingUser, error) {
+	if urs == nil {
+		urs = NewUserRepositories()
+	}
+
+	TestUserCount += 1
+	name := fmt.Sprintf("Test user %d", TestUserCount)
+	email := fmt.Sprintf("test%d@example.com", TestUserCount)
+
+	// create
+	userID, err := urs.UserRepository.Create(tx, name, email, "pa55word", "123456")
+	if err != nil {
+		return nil, err
+	}
+	expUser := &TQueryUser{
+		userID,
+		name,
+		"pa55word",
+		email,
+		sql.NullTime{},
+		time.Now(),
+		time.Now(),
+		false,
+		"123456",
+		sql.NullTime{},
+		false,
+	}
+	user, err := urs.UserRepository.QueryByID(tx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return &TestingUser{
+		user,
+		expUser,
+		tx,
+		urs,
+	}, nil
+}
 
 type UserDataMock struct {
 	userByID                    map[int]*TQueryUser
