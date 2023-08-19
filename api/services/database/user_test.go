@@ -186,6 +186,10 @@ func testUser(t *testing.T, repos *UserRepositories) {
 	}
 }
 
+//////////////////////////////////
+////// test recruitment //////////
+//////////////////////////////////
+
 func TestRecruitment(t *testing.T) {
 	testRecruitment(t, NewUserRepositories())
 }
@@ -244,6 +248,36 @@ func testRecruitment(t *testing.T, repos *UserRepositories) {
 	recruitmentIsEqual(t, recruit1, expRecruit1)
 	recruitmentIsNotNil(t, recruit1)
 
+	// query user and recruit
+	recruitUser, err := repos.UserRepository.QueryByRecruitUUID(tx, uuid1)
+	if err != nil {
+		t.Error(err)
+	}
+	user := &TQueryUser{
+		recruitUser.ID,
+		recruitUser.Name,
+		recruitUser.HashedPass,
+		recruitUser.Email,
+		recruitUser.LoginAt,
+		recruitUser.CreateAt,
+		recruitUser.UpdateAt,
+		recruitUser.Deleted,
+		recruitUser.VCode,
+		recruitUser.TwoVerificatedAt,
+		recruitUser.TwoVerificated,
+	}
+	userIsEqual(t, user, testingUser.ExpUser)
+	userIsNotNil(t, user)
+	if recruitUser.UUID != uuid1 {
+		t.Errorf("Expected UUID is '%s', but got='%s'", uuid1, recruitUser.UUID)
+	}
+	if recruitUser.Message != "Hello" {
+		t.Errorf("Expected Message is '%s', but got='%s'", "Hello", recruitUser.Message)
+	}
+	if recruitUser.RecruitDeleted {
+		t.Error("Expected RecruitDeleted is 'false', but got='true'")
+	}
+
 	// update
 	err = rr.Update(tx, uuid1, "Hi", true)
 	if err != nil {
@@ -290,6 +324,10 @@ func testRecruitment(t *testing.T, repos *UserRepositories) {
 	}
 	fmt.Print("Done")
 }
+
+//////////////////////////////////
+/// test webpush-subscription ////
+//////////////////////////////////
 
 func TestWebpushSubscription(t *testing.T) {
 	testWebpushSubscription(t, NewUserRepositories())
