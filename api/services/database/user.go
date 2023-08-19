@@ -332,7 +332,7 @@ func (wsr *WebpushSubscriptionRepository) QueryByUserID(tx *sql.Tx, userID int) 
 
 func (wsr *WebpushSubscriptionRepository) Create(tx *sql.Tx, userID int, endpoint, p256dh, auth, userAgent string, expTime *time.Time) (int, error) {
 	// exec insert
-	query := `INSERT INTO webpush (user_id, endpoint, p256dh, auth, user_agent, expiration_time) VALUES(?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO webpush (user_id, endpoint, p256dh, auth, user_agent, expiration_time) VALUES(?, ?, ?, ?, ?, ?)`
 	result, err := tx.Exec(query, userID, endpoint, p256dh, auth, userAgent, expTime)
 	if err != nil {
 		return 0, err

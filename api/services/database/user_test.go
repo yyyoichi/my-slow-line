@@ -288,7 +288,94 @@ func testRecruitment(t *testing.T, repos *UserRepositories) {
 	if len(recruits) != 0 {
 		t.Errorf("Expected len(recruits) is 0, but got='%d'", len(recruits))
 	}
-	t.Log("Done")
+	fmt.Print("Done")
+}
+
+func TestWebpushSubscription(t *testing.T) {
+	testWebpushSubscription(t, NewUserRepositories())
+}
+func TestWebpushSubscriptionMock(t *testing.T) {
+	testWebpushSubscription(t, NewUserRepositoriesMock())
+}
+
+func testWebpushSubscription(t *testing.T, repos *UserRepositories) {
+	tx, err := DB.Begin()
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	testingUser := CreateTestingUser(t, tx, repos)
+	defer testingUser.Delete(t)
+	userID := testingUser.User.ID
+
+	wsr := repos.WebpushSubscriptionRepository
+	// create
+	id, err := wsr.Create(tx, userID, "endpoint", "p256dh", "auth", "userAgent", nil)
+	if err != nil {
+		t.Error(err)
+	}
+	subscriptions, err := wsr.QueryByUserID(tx, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(subscriptions) != 1 {
+		t.Errorf("Expected len(subscriptions) is 1, but got='%d'", len(subscriptions))
+	}
+
+	subscription := subscriptions[0]
+	if subscription.ID != id {
+		t.Errorf("Expected ID is '%d', but got='%d'", id, subscription.ID)
+	}
+	if subscription.UserID != userID {
+		t.Errorf("Expected UserID is '%d', but got='%d'", userID, subscription.UserID)
+	}
+	if subscription.Auth != "auth" {
+		t.Errorf("Expected ID is 'auth', but got='%s'", subscription.Auth)
+	}
+	if subscription.P256dh != "p256dh" {
+		t.Errorf("Expected P256dh is 'p256dh', but got='%s'", subscription.Auth)
+	}
+	if subscription.UserAgent != "userAgent" {
+		t.Errorf("Expected UserAgent is 'userAgent', but got='%s'", subscription.Auth)
+	}
+	if subscription.ExpirationTime.Valid {
+		t.Error("Expected ExpirationTime.Valid is 'false', but got'true'")
+	}
+	if subscription.CreateAt.IsZero() {
+		t.Error("Expected CreateAt is not nil, but got='nil'")
+	}
+
+	// create
+	_, err = wsr.Create(tx, userID, "endpoint", "p256dh", "auth", "userAgent", nil)
+	if err != nil {
+		t.Error(err)
+	}
+	subscriptions, err = wsr.QueryByUserID(tx, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(subscriptions) != 2 {
+		t.Errorf("Expected len(subscriptions) is 2, but got='%d'", len(subscriptions))
+	}
+
+	// delete
+	err = wsr.DeleteAll(tx, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	subscriptions, err = wsr.QueryByUserID(tx, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(subscriptions) != 0 {
+		t.Errorf("Expected len(subscriptions) is 0, but got='%d'", len(subscriptions))
+	}
+	fmt.Print("Done")
 }
 
 func userIsEqual(t *testing.T, act, exp *TQueryUser) {

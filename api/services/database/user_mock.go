@@ -235,10 +235,7 @@ type WebpushSubscriptionRepositoryMock struct {
 }
 
 func (wsr *WebpushSubscriptionRepositoryMock) QueryByUserID(tx *sql.Tx, userID int) ([]*TQueryWebpushSubscription, error) {
-	subcription, found := wsr.mock.webpushSubscriptionByUserID[userID]
-	if !found {
-		return nil, sql.ErrNoRows
-	}
+	subcription := wsr.mock.webpushSubscriptionByUserID[userID]
 	return subcription, nil
 }
 
