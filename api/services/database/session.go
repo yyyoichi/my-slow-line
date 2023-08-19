@@ -39,8 +39,8 @@ func NewSessionRepositories() *SessionRepositories {
 
 type SessionRepository struct{}
 type SessionRepositoryInterface interface {
-	QueryByUserID(tx *sql.Tx, userID int, options TQuerySessionsOptions) ([]*TQuerySessions, error)
-	QueryBySessionUserID(tx *sql.Tx, sessionID, userID int) (*TQuerySessions, error)
+	QueryByUserID(tx *sql.Tx, userID int, options TQuerySessionsOptions) ([]*TQuerySession, error)
+	QueryBySessionUserID(tx *sql.Tx, sessionID, userID int) (*TQuerySession, error)
 	HasStatusAt(tx *sql.Tx, sessionID, userID int, inStatus []TParticipantStatus) (bool, error)
 	Create(tx *sql.Tx, userID int, publicKey string, name string) (int, error)
 	UpdateName(tx *sql.Tx, id int, name string) error
@@ -52,7 +52,7 @@ type SessionRepositoryInterface interface {
 
 // query sessions by userID
 
-type TQuerySessions struct {
+type TQuerySession struct {
 	ID            int
 	Name          string
 	PublicKey     string
@@ -68,7 +68,7 @@ type TQuerySessionsOptions struct {
 }
 
 // query sessions
-func (sr *SessionRepository) QueryByUserID(tx *sql.Tx, userID int, options TQuerySessionsOptions) ([]*TQuerySessions, error) {
+func (sr *SessionRepository) QueryByUserID(tx *sql.Tx, userID int, options TQuerySessionsOptions) ([]*TQuerySession, error) {
 	// query
 	query := `
 	SELECT s.id, s.public_key, s.name, s.status, s.create_at, s.update_at, s.deleted, p.status 
@@ -87,9 +87,9 @@ func (sr *SessionRepository) QueryByUserID(tx *sql.Tx, userID int, options TQuer
 	}
 	defer rows.Close()
 
-	var results []*TQuerySessions
+	var results []*TQuerySession
 	for rows.Next() {
-		s := &TQuerySessions{}
+		s := &TQuerySession{}
 		err := rows.Scan(&s.ID, &s.PublicKey, &s.Name, &s.SessionStatus, &s.CreateAt, &s.UpdateAt, &s.Deleted, &s.Status)
 		if err != nil {
 			return nil, err
@@ -105,7 +105,7 @@ func (sr *SessionRepository) QueryByUserID(tx *sql.Tx, userID int, options TQuer
 }
 
 // query a session
-func (sr *SessionRepository) QueryBySessionUserID(tx *sql.Tx, sessionID, userID int) (*TQuerySessions, error) {
+func (sr *SessionRepository) QueryBySessionUserID(tx *sql.Tx, sessionID, userID int) (*TQuerySession, error) {
 	// query
 	query := `
 	SELECT s.id, s.public_key, s.name, s.status, s.create_at, s.update_at, s.deleted, p.status 
@@ -115,7 +115,7 @@ func (sr *SessionRepository) QueryBySessionUserID(tx *sql.Tx, sessionID, userID 
 	row := tx.QueryRow(query, sessionID, userID)
 
 	// result
-	s := &TQuerySessions{}
+	s := &TQuerySession{}
 	err := row.Scan(&s.ID, &s.PublicKey, &s.Name, &s.SessionStatus, &s.CreateAt, &s.UpdateAt, &s.Deleted, &s.Status)
 	if err != nil {
 		if err == sql.ErrNoRows {

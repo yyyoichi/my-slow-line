@@ -52,7 +52,7 @@ func (dm *SessionDataMock) genChats() <-chan *TQuerySessionChat {
 	return ch
 }
 
-func (dm *SessionDataMock) querySessionsByUserID(userID int, options TQuerySessionsOptions) ([]*TQuerySessions, error) {
+func (dm *SessionDataMock) querySessionsByUserID(userID int, options TQuerySessionsOptions) ([]*TQuerySession, error) {
 	var tmpResults []struct {
 		id     int
 		status TParticipantStatus
@@ -85,7 +85,7 @@ func (dm *SessionDataMock) querySessionsByUserID(userID int, options TQuerySessi
 		tmpResults = append(tmpResults, session)
 	}
 
-	var results []*TQuerySessions
+	var results []*TQuerySession
 	// map session
 	for _, rlt := range tmpResults {
 		for session := range dm.genSessions() {
@@ -102,7 +102,7 @@ func (dm *SessionDataMock) querySessionsByUserID(userID int, options TQuerySessi
 			if !hasStatus {
 				continue
 			}
-			result := &TQuerySessions{
+			result := &TQuerySession{
 				session.id,
 				session.name,
 				session.public_key,
@@ -151,7 +151,7 @@ type SessionRepositoryMock struct {
 	mock *SessionDataMock
 }
 
-func (sr *SessionRepositoryMock) QueryByUserID(tx *sql.Tx, userID int, options TQuerySessionsOptions) ([]*TQuerySessions, error) {
+func (sr *SessionRepositoryMock) QueryByUserID(tx *sql.Tx, userID int, options TQuerySessionsOptions) ([]*TQuerySession, error) {
 	results, err := sr.mock.querySessionsByUserID(userID, options)
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func (sr *SessionRepositoryMock) QueryByUserID(tx *sql.Tx, userID int, options T
 }
 
 // query a session
-func (sr *SessionRepositoryMock) QueryBySessionUserID(tx *sql.Tx, sessionID, userID int) (*TQuerySessions, error) {
+func (sr *SessionRepositoryMock) QueryBySessionUserID(tx *sql.Tx, sessionID, userID int) (*TQuerySession, error) {
 	results, err := sr.QueryByUserID(tx, userID, TQuerySessionsOptions{
 		[]TParticipantStatus{TInvitedParty, TJoinedParty, TRejectedParty},
 		[]TSessionStatus{TActiveSession, TArchivedSession, TBreakupSession},
@@ -194,7 +194,14 @@ func (sr *SessionRepositoryMock) HasStatusAt(tx *sql.Tx, sessionID, userID int, 
 
 // create
 func (sr *SessionRepositoryMock) Create(tx *sql.Tx, userID int, publicKey string, name string) (int, error) {
-	id := len(sr.mock.sessionByID) + 1
+	id := 0
+	for _, session := range sr.mock.sessionByID {
+		if id < session.id {
+			id = session.id
+		}
+	}
+	id += 1
+
 	session := &tSessionTable{id, userID, publicKey, name, TActiveSession, time.Now(), time.Now(), false}
 	sr.mock.sessionByID[id] = session
 	return id, nil
@@ -263,8 +270,15 @@ func (spr *SessionParticipantRepositoryMock) QueryBySessionID(tx *sql.Tx, sessio
 
 // [invite_user_id] is ID of the user exec to the session
 func (spr *SessionParticipantRepositoryMock) Create(tx *sql.Tx, sessionID, userID, inviteUserID int, status TParticipantStatus) (int, error) {
-	participants := spr.mock.participantBySessionID[sessionID]
-	id := len(participants) + 1
+	id := 0
+	for _, particparticipants := range spr.mock.participantBySessionID {
+		for _, party := range particparticipants {
+			if id < party.ID {
+				id = party.ID
+			}
+		}
+	}
+	id = id + 1
 	participant := &TSessionParticipant{
 		ID:        id,
 		SessionID: sessionID,
@@ -274,6 +288,8 @@ func (spr *SessionParticipantRepositoryMock) Create(tx *sql.Tx, sessionID, userI
 		UpdateAt:  time.Now(),
 		Deleted:   false,
 	}
+
+	participants := spr.mock.participantBySessionID[sessionID]
 	spr.mock.participantBySessionID[sessionID] = append(participants, participant)
 	return id, nil
 }

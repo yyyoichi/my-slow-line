@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -14,26 +15,56 @@ func init() {
 // //////// test Session ////////////
 // //////////////////////////////////
 
+type TestingSession struct {
+	Session      *TQuerySession
+	ExpSession   *TQuerySession
+	tx           *sql.Tx
+	repositories *SessionRepositories
+}
+
+func (ts *TestingSession) Delete() error {
+	var err error
+	err = ts.repositories.SessionRepository.HardDelete(ts.tx, ts.Session.ID)
+	if err != nil {
+		return err
+	}
+	err = ts.repositories.SessionParticipantRepository.HardDelete(ts.tx, ts.Session.ID)
+	return err
+}
+
+var TestSessionCount = 0
+
+func CreateTestingSession(tx *sql.Tx, srs *SessionRepositories, userID int) (*TestingSession, error) {
+	TestSessionCount += 1
+	sessionName := fmt.Sprintf("Test Session %d", TestSessionCount)
+	sessionID, err := srs.SessionRepository.Create(tx, userID, "key", sessionName)
+	if err != nil {
+		return nil, err
+	}
+	_, err = srs.SessionParticipantRepository.Create(tx, sessionID, userID, userID, TInvitedParty)
+	if err != nil {
+		return nil, err
+	}
+
+	session, err := srs.SessionRepository.QueryBySessionUserID(tx, sessionID, userID)
+	if err != nil {
+		return nil, err
+	}
+	expSession := &TQuerySession{
+		sessionID,
+		sessionName,
+		"key",
+		TActiveSession,
+		TInvitedParty,
+		time.Now(),
+		time.Now(),
+		false,
+	}
+
+	return &TestingSession{session, expSession, tx, srs}, nil
+}
+
 func TestSession(t *testing.T) {
-	// Create a mock user
-	usersR := &UserRepository{}
-	mockUser := createMockUser()
-	testUser, close := userMock(t, usersR, mockUser)
-	userID := testUser.Id
-	defer close()
-	testSession(t, NewSessionRepositories(), userID)
-}
-
-func TestSessionMock(t *testing.T) {
-	testSession(t, NewSessionRepositoriesMock(), 1)
-}
-
-type tQuerySession struct {
-	Name   string
-	Status TSessionStatus
-}
-
-func testSession(t *testing.T, repos *SessionRepositories, userID int) {
 	tx, err := DB.Begin()
 	if err != nil {
 		t.Error(err)
@@ -44,59 +75,136 @@ func testSession(t *testing.T, repos *SessionRepositories, userID int) {
 		}
 	}()
 
-	sr := repos.SessionRepository
-
-	// create
-	sessionID, err := sr.Create(tx, userID, "", "Test")
+	usr := NewUserRepositories()
+	user, err := CreateTestingUser(tx, usr)
 	if err != nil {
 		t.Error(err)
 	}
-	defer sr.HardDelete(tx, sessionID)
+	testSession(t, tx, NewSessionRepositories(), user.User.ID)
+}
 
-	// test
-	testQuerySession(t, sessionID, "Test", TActiveSession)
+func TestSessionMock(t *testing.T) {
+	testSession(t, &sql.Tx{}, NewSessionRepositoriesMock(), 1)
+}
+
+func testSession(t *testing.T, tx *sql.Tx, repos *SessionRepositories, userID int) {
+	// create and test
+	testingSession, err := CreateTestingSession(tx, repos, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	defer testingSession.Delete()
+	session := testingSession.Session
+	expSession := testingSession.ExpSession
+	sessionIsEqual(t, session, expSession)
+
+	sr := repos.SessionRepository
+	// status at
+	if has, err := sr.HasStatusAt(tx, session.ID, userID, []TParticipantStatus{TInvitedParty}); err != nil {
+		t.Error(err)
+	} else if !has {
+		t.Errorf("Expected has status is 'true', but got='false'")
+	}
+	if has, err := sr.HasStatusAt(tx, session.ID, userID, []TParticipantStatus{TJoinedParty, TRejectedParty}); err != nil {
+		t.Error(err)
+	} else if has {
+		t.Errorf("Expected has status is 'false', but got='true'")
+	}
 
 	// update
-	err = sr.UpdateName(tx, sessionID, "Update")
+	if err = sr.UpdateName(tx, session.ID, "Rename"); err != nil {
+		t.Error(err)
+	}
+	expSession.Name = "Rename"
+	session, err = sr.QueryBySessionUserID(tx, session.ID, userID)
 	if err != nil {
 		t.Error(err)
 	}
-	testQuerySession(t, sessionID, "Update", TActiveSession)
+	sessionIsEqual(t, session, expSession)
 
-	err = sr.UpdateStatus(tx, sessionID, TArchivedSession)
+	// update session status
+	err = sr.UpdateStatus(tx, session.ID, TArchivedSession)
 	if err != nil {
 		t.Error(err)
 	}
-	testQuerySession(t, sessionID, "Update", TArchivedSession)
+	expSession.SessionStatus = TArchivedSession
+	session, err = sr.QueryBySessionUserID(tx, session.ID, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	sessionIsEqual(t, session, expSession)
+
+	// soft delete session
+	if err = sr.SoftDelete(tx, session.ID); err != nil {
+		t.Error(err)
+	}
+	expSession.Deleted = true
+	session, err = sr.QueryBySessionUserID(tx, session.ID, userID)
+	if err != nil {
+		t.Error(err)
+	}
+	sessionIsEqual(t, session, expSession)
+
+	// test query sessions
+	options := TQuerySessionsOptions{
+		[]TParticipantStatus{TInvitedParty, TJoinedParty, TRejectedParty},
+		[]TSessionStatus{TActiveSession, TArchivedSession, TBreakupSession},
+	}
+	if sessions, err := sr.QueryByUserID(tx, userID, options); err != nil {
+		t.Error(err)
+	} else if len(sessions) != 1 {
+		t.Errorf("Expected len(sessions) is 1, but got=%d", len(sessions))
+	}
+
+	// add session
+	if _, err = CreateTestingSession(tx, repos, userID); err != nil {
+		t.Error(err)
+	}
+
+	if sessions, err := sr.QueryByUserID(tx, userID, options); err != nil {
+		t.Error(err)
+	} else if len(sessions) != 2 {
+		t.Errorf("Expected len(sessions) is 2, but got=%d", len(sessions))
+	}
+
+	// filter
+	options.InSessionStatus = []TSessionStatus{TArchivedSession}
+	if sessions, err := sr.QueryByUserID(tx, userID, options); err != nil {
+		t.Error(err)
+	} else if len(sessions) != 1 {
+		t.Errorf("Expected len(sessions) is 1, but got=%d", len(sessions))
+	}
+
+	fmt.Print("Done")
 }
-func querySessionByID(sessionID int) (*tQuerySession, error) {
-	query := `SELECT name, status FROM chat_sessions WHERE id = ?`
-	row := DB.QueryRow(query, sessionID)
 
-	// result
-	s := &tQuerySession{}
-	err := row.Scan(&s.Name, &s.Status)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			// No rows found, return nil without an error.
-			return nil, nil
-		}
-		return nil, err
+func sessionIsEqual(t *testing.T, act, exp *TQuerySession) {
+	if act.Name != exp.Name {
+		t.Errorf("Expected Name '%s', but got='%s'", exp.Name, act.Name)
 	}
-
-	return s, nil
-}
-
-func testQuerySession(t *testing.T, sessionID int, expName string, expStatus TSessionStatus) {
-	session, err := querySessionByID(sessionID)
-	if err != nil {
-		t.Error(err)
+	if act.Status != exp.Status {
+		t.Errorf("Expected Status '%s', but got='%s'", exp.Status, act.Status)
 	}
-	if session.Name != expName {
-		t.Errorf("Expected Name '%s', but got='%s'", expName, session.Name)
+	if act.SessionStatus != exp.SessionStatus {
+		t.Errorf("Expected SessionStatus '%s', but got='%s'", exp.SessionStatus, act.SessionStatus)
 	}
-	if session.Status != expStatus {
-		t.Errorf("Expected Status '%s', but got='%s'", expStatus, session.Status)
+	if act.PublicKey != exp.PublicKey {
+		t.Errorf("Expected PublicKey '%s', but got='%s'", exp.PublicKey, act.PublicKey)
+	}
+	if act.ID != exp.ID {
+		t.Errorf("Expected ID '%d', but got='%d'", exp.ID, act.ID)
+	}
+	if act.ID != exp.ID {
+		t.Errorf("Expected ID '%d', but got='%d'", exp.ID, act.ID)
+	}
+	if act.Deleted != exp.Deleted {
+		t.Errorf("Expected Deleted '%v', but got='%v'", exp.Deleted, act.Deleted)
+	}
+	if act.CreateAt.IsZero() {
+		t.Errorf("Expected CreateAt is not zero but got='zero'")
+	}
+	if act.UpdateAt.IsZero() {
+		t.Errorf("Expected UpdateAt is not zero but got='zero'")
 	}
 }
 
@@ -105,27 +213,28 @@ func testQuerySession(t *testing.T, sessionID int, expName string, expStatus TSe
 ////////////////////////////////////
 
 func TestSessionParticipant(t *testing.T) {
-	// Create a mock user
-	usersR := &UserRepository{}
-	mockUser := createMockUser()
-	testUser, close := userMock(t, usersR, mockUser)
-	userID := testUser.Id
-	defer close()
-	testSessionParticipant(t, NewSessionRepositories(), userID)
-}
-func TestSessionParticipantMock(t *testing.T) {
-	testSessionParticipant(t, NewSessionRepositoriesMock(), 1)
-}
-
-func testSessionParticipant(t *testing.T, repos *SessionRepositories, userID int) {
 	tx, err := DB.Begin()
 	if err != nil {
 		t.Error(err)
 	}
 	defer func() {
-		tx.Rollback()
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
 	}()
 
+	usr := NewUserRepositories()
+	user, err := CreateTestingUser(tx, usr)
+	if err != nil {
+		t.Error(err)
+	}
+	testSessionParticipant(t, tx, NewSessionRepositories(), user.User.ID)
+}
+func TestSessionParticipantMock(t *testing.T) {
+	testSessionParticipant(t, &sql.Tx{}, NewSessionRepositoriesMock(), 1)
+}
+
+func testSessionParticipant(t *testing.T, tx *sql.Tx, repos *SessionRepositories, userID int) {
 	sr := repos.SessionRepository
 
 	// create
@@ -181,7 +290,7 @@ func testSessionParticipant(t *testing.T, repos *SessionRepositories, userID int
 		t.Error("Expected HasStatusAt is false, but got=true")
 	}
 
-	session := &TQuerySessions{}
+	session := &TQuerySession{}
 
 	session, err = sr.QueryBySessionUserID(tx, sessionID, userID)
 	if err != nil {
@@ -222,27 +331,28 @@ func testQueryParticipant(t *testing.T, tx *sql.Tx, participants []*TSessionPart
 ////////////////////////////////////
 
 func TestSessionChat(t *testing.T) {
-	// Create a mock user
-	usersR := &UserRepository{}
-	mockUser := createMockUser()
-	testUser, close := userMock(t, usersR, mockUser)
-	userID := testUser.Id
-	defer close()
-	testSessionChat(t, NewSessionRepositories(), userID)
-}
-func TestSessionChatMock(t *testing.T) {
-	testSessionChat(t, NewSessionRepositoriesMock(), 1)
-}
-
-func testSessionChat(t *testing.T, repos *SessionRepositories, userID int) {
 	tx, err := DB.Begin()
 	if err != nil {
 		t.Error(err)
 	}
 	defer func() {
-		tx.Rollback()
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
 	}()
 
+	usr := NewUserRepositories()
+	user, err := CreateTestingUser(tx, usr)
+	if err != nil {
+		t.Error(err)
+	}
+	testSessionChat(t, tx, NewSessionRepositories(), user.User.ID)
+}
+func TestSessionChatMock(t *testing.T) {
+	testSessionChat(t, &sql.Tx{}, NewSessionRepositoriesMock(), 1)
+}
+
+func testSessionChat(t *testing.T, tx *sql.Tx, repos *SessionRepositories, userID int) {
 	sr := repos.SessionRepository
 
 	// create
