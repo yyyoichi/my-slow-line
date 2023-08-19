@@ -94,10 +94,21 @@ func testUser(t *testing.T, repos *UserRepositories) {
 
 	// create and query test
 	testingUser1 := CreateTestingUser(t, tx, repos)
-	defer testingUser1.Delete(t)
-
 	user1 := testingUser1.User
 	expUser1 := testingUser1.ExpUser
+
+	close := func() {
+		testingUser1.Delete(t)
+		user1, err = ur.QueryByID(tx, user1.ID)
+		if err != sql.ErrNoRows {
+			t.Errorf("Expected err is '%s', but got='%s'", sql.ErrNoRows, err.Error())
+		}
+		if user1 != nil {
+			t.Error("Expected user1 is nil, but is not nil")
+		}
+	}
+	defer close()
+
 	userIsNotNil(t, user1)
 	userIsEqual(t, user1, expUser1)
 
