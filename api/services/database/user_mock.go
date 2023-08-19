@@ -93,7 +93,7 @@ func (ur *UserRepositoryMock) Create(tx *sql.Tx, name, email, hashedPass, vcode 
 		name,
 		hashedPass,
 		email,
-		time.Now(),
+		sql.NullTime{},
 		time.Now(),
 		time.Now(),
 		false,
@@ -103,6 +103,15 @@ func (ur *UserRepositoryMock) Create(tx *sql.Tx, name, email, hashedPass, vcode 
 	}
 	ur.mock.userByID[id] = user
 	return id, nil
+}
+
+func (ur *UserRepositoryMock) UpdateLoginTime(tx *sql.Tx, userID int) error {
+	user, found := ur.mock.userByID[userID]
+	if !found {
+		return sql.ErrNoRows
+	}
+	user.LoginAt = sql.NullTime{Valid: true, Time: time.Now()}
+	return nil
 }
 
 func (ur *UserRepositoryMock) SoftDeleteByID(tx *sql.Tx, userID int) error {

@@ -25,6 +25,7 @@ type UserRepositoryInterface interface {
 	QueryByEMail(tx *sql.Tx, email string) (*TQueryUser, error)
 	QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQeuryRecruitUser, error)
 	Create(tx *sql.Tx, name, email, hashedPass, vcode string) (int, error)
+	UpdateLoginTime(tx *sql.Tx, userID int) error
 	SoftDeleteByID(tx *sql.Tx, userID int) error
 	ActivateByID(tx *sql.Tx, userID int) error
 	HardDeleteByID(tx *sql.Tx, userID int) error
@@ -37,7 +38,7 @@ type TQueryUser struct {
 	Name             string
 	HashedPass       string
 	Email            string
-	LoginAt          time.Time
+	LoginAt          sql.NullTime
 	CreateAt         time.Time
 	UpdateAt         time.Time
 	Deleted          bool
@@ -51,7 +52,7 @@ type TQeuryRecruitUser struct {
 	Name             string
 	HashedPass       string
 	Email            string
-	LoginAt          time.Time
+	LoginAt          sql.NullTime
 	CreateAt         time.Time
 	UpdateAt         time.Time
 	Deleted          bool
@@ -71,7 +72,7 @@ func (ur *UserRepository) QueryByID(tx *sql.Tx, userID int) (*TQueryUser, error)
 				FROM users WHERE id = ?`
 	row := tx.QueryRow(query, userID)
 
-	var result *TQueryUser
+	result := &TQueryUser{}
 	err := row.Scan(&result.ID, &result.Name, &result.Email, &result.HashedPass, &result.LoginAt, &result.CreateAt, &result.UpdateAt, &result.Deleted,
 		&result.VCode, &result.TwoVerificatedAt, &result.TwoVerificated,
 	)
@@ -89,7 +90,7 @@ func (ur *UserRepository) QueryByEMail(tx *sql.Tx, email string) (*TQueryUser, e
 	 			FROM users WHERE email = ?`
 	row := tx.QueryRow(query, email)
 
-	var result *TQueryUser
+	result := &TQueryUser{}
 	err := row.Scan(&result.ID, &result.Name, &result.Email, &result.HashedPass, &result.LoginAt, &result.CreateAt, &result.UpdateAt, &result.Deleted,
 		&result.VCode, &result.TwoVerificatedAt, &result.TwoVerificated,
 	)
@@ -110,7 +111,7 @@ func (ur *UserRepository) QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQeuryRe
 				WHERE r.uuid = ?`
 	row := tx.QueryRow(query, uuid)
 
-	var result *TQeuryRecruitUser
+	result := &TQeuryRecruitUser{}
 	err := row.Scan(&result.ID, &result.Name, &result.Email, &result.HashedPass, &result.LoginAt, &result.CreateAt, &result.UpdateAt, &result.Deleted,
 		&result.VCode, &result.TwoVerificatedAt, &result.TwoVerificated,
 		&result.UUID, &result.Message, &result.RecruitDeleted,
@@ -133,6 +134,12 @@ func (ur *UserRepository) Create(tx *sql.Tx, name, email, hashedPass, vcode stri
 	// get id
 	id, err := result.LastInsertId()
 	return int(id), err
+}
+
+func (ur *UserRepository) UpdateLoginTime(tx *sql.Tx, userID int) error {
+	query := `UPDATE users SET login_at = NOW() WHERE id = ?`
+	_, err := tx.Exec(query, userID)
+	return err
 }
 
 // deleted flag on
@@ -218,7 +225,7 @@ func (rr *RecruitmentRepository) QueryByUserID(tx *sql.Tx, userID int) ([]*TQuer
 	// responsed
 	var results []*TQueryRecruitment
 	for rows.Next() {
-		var rlt *TQueryRecruitment
+		rlt := &TQueryRecruitment{}
 		if err := rows.Scan(&rlt.ID, &rlt.UserID, &rlt.UUID, &rlt.Message, &rlt.CreateAt, &rlt.UpdateAt, &rlt.Deleted); err != nil {
 			return nil, err
 		}
@@ -235,7 +242,7 @@ func (rr *RecruitmentRepository) QueryByUUID(tx *sql.Tx, uuid string) (*TQueryRe
 	query := `SELECT id, user_id, uuid, message, create_at, update_at, deleted FROM recruitments WHERE uuid = ?`
 	row := tx.QueryRow(query, uuid)
 	// result
-	var result *TQueryRecruitment
+	result := &TQueryRecruitment{}
 	err := row.Scan(&result.ID, &result.UserID, &result.UUID, &result.Message, &result.CreateAt, &result.UpdateAt, &result.Deleted)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -310,7 +317,7 @@ func (wsr *WebpushSubscriptionRepository) QueryByUserID(tx *sql.Tx, userID int) 
 	// responsed
 	var results []*TQueryWebpushSubscription
 	for rows.Next() {
-		var rlt *TQueryWebpushSubscription
+		rlt := &TQueryWebpushSubscription{}
 		if err := rows.Scan(&rlt.ID, &rlt.UserID, &rlt.Endpoint, &rlt.P256dh, &rlt.Auth, &rlt.UserAgent, &rlt.ExpirationTime, &rlt.CreateAt); err != nil {
 			return nil, err
 		}
