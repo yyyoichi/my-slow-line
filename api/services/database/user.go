@@ -23,7 +23,7 @@ type UserRepository struct{}
 type UserRepositoryInterface interface {
 	QueryByID(tx *sql.Tx, userID int) (*TQueryUser, error)
 	QueryByEMail(tx *sql.Tx, email string) (*TQueryUser, error)
-	QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQeuryRecruitUser, error)
+	QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQueryRecruitUser, error)
 	Create(tx *sql.Tx, name, email, hashedPass, vcode string) (int, error)
 	UpdateLoginTime(tx *sql.Tx, userID int) error
 	SoftDeleteByID(tx *sql.Tx, userID int) error
@@ -47,7 +47,7 @@ type TQueryUser struct {
 	TwoVerificated   bool
 }
 
-type TQeuryRecruitUser struct {
+type TQueryRecruitUser struct {
 	ID               int
 	Name             string
 	HashedPass       string
@@ -101,7 +101,7 @@ func (ur *UserRepository) QueryByEMail(tx *sql.Tx, email string) (*TQueryUser, e
 	return result, nil
 }
 
-func (ur *UserRepository) QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQeuryRecruitUser, error) {
+func (ur *UserRepository) QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQueryRecruitUser, error) {
 	// query user
 	query := `SELECT u.id, u.name, u.email, u.password, u.login_at, u.create_at, u.update_at, u.deleted,
 					two_step_verification_code, u.two_verificated_at, u.two_verificated,
@@ -111,7 +111,7 @@ func (ur *UserRepository) QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQeuryRe
 				WHERE r.uuid = ?`
 	row := tx.QueryRow(query, uuid)
 
-	result := &TQeuryRecruitUser{}
+	result := &TQueryRecruitUser{}
 	err := row.Scan(&result.ID, &result.Name, &result.Email, &result.HashedPass, &result.LoginAt, &result.CreateAt, &result.UpdateAt, &result.Deleted,
 		&result.VCode, &result.TwoVerificatedAt, &result.TwoVerificated,
 		&result.UUID, &result.Message, &result.RecruitDeleted,

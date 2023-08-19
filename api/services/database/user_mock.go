@@ -49,7 +49,7 @@ func (ur *UserRepositoryMock) QueryByEMail(tx *sql.Tx, email string) (*TQueryUse
 	return result, nil
 }
 
-func (ur *UserRepositoryMock) QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQeuryRecruitUser, error) {
+func (ur *UserRepositoryMock) QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQueryRecruitUser, error) {
 	recruit, found := ur.mock.recruitmentByUUID[uuid]
 	if !found {
 		return nil, sql.ErrNoRows
@@ -58,7 +58,7 @@ func (ur *UserRepositoryMock) QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQeu
 	if err != nil {
 		return nil, err
 	}
-	result := &TQeuryRecruitUser{
+	result := &TQueryRecruitUser{
 		user.ID,
 		user.Name,
 		user.HashedPass,
