@@ -8,7 +8,8 @@ import (
 func TestSendCode(t *testing.T) {
 	email := os.Getenv("EMAIL_ADDRESS")
 	code := "000000"
-	if err := NewEmailServices().SendVCode(email, code); err != nil {
+	es := NewEmailServices()(email)
+	if err := es.SendVCode(code); err != nil {
 		t.Error(err)
 	}
 }
