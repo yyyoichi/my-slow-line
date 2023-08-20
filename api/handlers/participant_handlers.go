@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"himakiwa/handlers/utils"
+	"himakiwa/services"
 	"himakiwa/services/database"
-	"himakiwa/services/sessions"
 	"net/http"
 	"strconv"
 
@@ -15,10 +15,10 @@ import (
 ///////////////////////////////////
 
 type ParticipantsAtHandlers struct {
-	Use sessions.UseSessionServicesFunc
+	UseRepositoryServices services.UseRepositoryServices
 }
 
-func NewParticipantsAtHandlers(use sessions.UseSessionServicesFunc) func(http.ResponseWriter, *http.Request) {
+func NewParticipantsAtHandlers(use services.UseRepositoryServices) func(http.ResponseWriter, *http.Request) {
 	pah := &ParticipantsAtHandlers{use}
 	return pah.ParticipantsAtHandlers
 }
@@ -79,7 +79,7 @@ func (pah *ParticipantsAtHandlers) PutParticipantsAtHandler(w http.ResponseWrite
 		return
 	}
 	// session services
-	sessionServices := pah.Use(userID)
+	sessionServices := pah.UseRepositoryServices(userID).SessionServices
 
 	// update
 	err = sessionServices.UpdateParticipantStatusAt(sessionID, b.UserID, b.Status)

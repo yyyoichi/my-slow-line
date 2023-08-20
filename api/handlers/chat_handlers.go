@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"himakiwa/handlers/utils"
-	"himakiwa/services/sessions"
+	"himakiwa/services"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,10 +16,10 @@ import (
 ///////////////////////////////////
 
 type ChatsHandlers struct {
-	Use sessions.UseSessionServicesFunc
+	UseRepositoryServices services.UseRepositoryServices
 }
 
-func NewChatsHandlers(use sessions.UseSessionServicesFunc) func(http.ResponseWriter, *http.Request) {
+func NewChatsHandlers(use services.UseRepositoryServices) func(http.ResponseWriter, *http.Request) {
 	ch := &ChatsHandlers{use}
 	return ch.ChatsHandlers
 }
@@ -54,7 +54,7 @@ func (ch *ChatsHandlers) GetChatsHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// session services
-	sessionServices := ch.Use(userID)
+	sessionServices := ch.UseRepositoryServices(userID).SessionServices
 	lastChats, err := sessionServices.GetLastChatInActiveSessions()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -89,10 +89,10 @@ func (ch *ChatsHandlers) GetChatsHandler(w http.ResponseWriter, r *http.Request)
 ///////////////////////////////////
 
 type ChatsAtHandlers struct {
-	Use sessions.UseSessionServicesFunc
+	UseRepositoryServices services.UseRepositoryServices
 }
 
-func NewChatsAtHandlers(use sessions.UseSessionServicesFunc) func(http.ResponseWriter, *http.Request) {
+func NewChatsAtHandlers(use services.UseRepositoryServices) func(http.ResponseWriter, *http.Request) {
 	cah := &ChatsAtHandlers{use}
 	return cah.ChatsAtHandlers
 }
@@ -141,7 +141,7 @@ func (cah *ChatsAtHandlers) GetChatsAtHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	// session services
-	sessionServices := cah.Use(userID)
+	sessionServices := cah.UseRepositoryServices(userID).SessionServices
 	chats, err := sessionServices.GetChatsAtIn48Hours(sessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -204,7 +204,7 @@ func (cah *ChatsAtHandlers) PostChatsAtHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 	// session services
-	sessionServices := cah.Use(userID)
+	sessionServices := cah.UseRepositoryServices(userID).SessionServices
 
 	err = sessionServices.SendChatAt(sessionID, b.Content)
 	if err != nil {

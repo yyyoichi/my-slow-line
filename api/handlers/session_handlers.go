@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"himakiwa/handlers/utils"
+	"himakiwa/services"
 	"himakiwa/services/database"
-	"himakiwa/services/sessions"
 	"net/http"
 	"strconv"
 	"time"
@@ -17,10 +17,10 @@ import (
 ///////////////////////////////////
 
 type SessionsHandlers struct {
-	Use sessions.UseSessionServicesFunc
+	UseRepositoryServices services.UseRepositoryServices
 }
 
-func NewSessionsHandlers(use sessions.UseSessionServicesFunc) func(http.ResponseWriter, *http.Request) {
+func NewSessionsHandlers(use services.UseRepositoryServices) func(http.ResponseWriter, *http.Request) {
 	sh := &SessionsHandlers{use}
 	return sh.SessionsHandlers
 }
@@ -57,7 +57,7 @@ func (sh *SessionsHandlers) GetSessionsHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 	// session services
-	sessionServices := sh.Use(userID)
+	sessionServices := sh.UseRepositoryServices(userID).SessionServices
 	sessions, err := sessionServices.GetActiveOrArchivedSessions()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -108,17 +108,20 @@ func (sh *SessionsHandlers) PostSessionsHandler(w http.ResponseWriter, r *http.R
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	repositoryServices := sh.UseRepositoryServices(userID)
+	// user services
+	userSerivices := repositoryServices.UserServices
 	// session services
-	sessionServices := sh.Use(userID)
+	sessionServices := repositoryServices.SessionServices
 
 	// get recruit user data
-	recruit, err := sessionServices.LookUpRecruitment(b.RecruitUUID)
+	user, err := userSerivices.GetUserByRecruitUUID(b.RecruitUUID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = sessionServices.CreateSession(b.PublicKey, b.SessionName, recruit.UserId)
+	err = sessionServices.CreateSession(b.PublicKey, b.SessionName, user.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -132,10 +135,10 @@ func (sh *SessionsHandlers) PostSessionsHandler(w http.ResponseWriter, r *http.R
 ////////////////////////////////////////////////////
 
 type SessionAtHandlers struct {
-	Use sessions.UseSessionServicesFunc
+	UseRepositoryServices services.UseRepositoryServices
 }
 
-func NewSessionAtHandlers(use sessions.UseSessionServicesFunc) func(http.ResponseWriter, *http.Request) {
+func NewSessionAtHandlers(use services.UseRepositoryServices) func(http.ResponseWriter, *http.Request) {
 	sah := &SessionAtHandlers{use}
 	return sah.SessionAtHandlers
 }
@@ -194,7 +197,7 @@ func (sh *SessionAtHandlers) GetSessionAtHandler(w http.ResponseWriter, r *http.
 		return
 	}
 	// session services
-	sessionServices := sh.Use(userID)
+	sessionServices := sh.UseRepositoryServices(userID).SessionServices
 
 	// get session
 	session, participants, err := sessionServices.GetSessionAt(sessionID)
@@ -272,7 +275,7 @@ func (sh *SessionAtHandlers) PutSessionAtHandler(w http.ResponseWriter, r *http.
 		return
 	}
 	// session services
-	sessionServices := sh.Use(userID)
+	sessionServices := sh.UseRepositoryServices(userID).SessionServices
 
 	err = sessionServices.UpdateSessionNameAt(sessionID, b.SessionName)
 	if err != nil {

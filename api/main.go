@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"himakiwa/handlers"
 	"himakiwa/handlers/middleware"
+	"himakiwa/services"
 	"himakiwa/services/database"
-	"himakiwa/services/sessions"
 	"io"
 	"log"
 	"mime"
@@ -56,16 +56,16 @@ func handler() {
 	wp.HandleFunc("/subscription", handlers.PushSubscriptionHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
 
 	ses := me.PathPrefix("/sessions").Subrouter()
-	UseSessionServicesFunc := sessions.NewSessionServices()
-	ses.HandleFunc("", handlers.NewSessionsHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPost)
-	ses.HandleFunc("/{sessionID}", handlers.NewSessionAtHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPut)
+	useRepositoryServices := services.NewRepositoryServices()
+	ses.HandleFunc("", handlers.NewSessionsHandlers(useRepositoryServices)).Methods(http.MethodGet, http.MethodPost)
+	ses.HandleFunc("/{sessionID}", handlers.NewSessionAtHandlers(useRepositoryServices)).Methods(http.MethodGet, http.MethodPut)
 
 	chs := me.PathPrefix("/chats").Subrouter()
-	chs.HandleFunc("", handlers.NewChatsHandlers(UseSessionServicesFunc)).Methods(http.MethodGet)
-	chs.HandleFunc("/{sessionID}", handlers.NewChatsAtHandlers(UseSessionServicesFunc)).Methods(http.MethodGet, http.MethodPost)
+	chs.HandleFunc("", handlers.NewChatsHandlers(useRepositoryServices)).Methods(http.MethodGet)
+	chs.HandleFunc("/{sessionID}", handlers.NewChatsAtHandlers(useRepositoryServices)).Methods(http.MethodGet, http.MethodPost)
 
 	phs := me.PathPrefix("/participants").Subrouter()
-	phs.HandleFunc("/{sessionID}", handlers.NewParticipantsAtHandlers(UseSessionServicesFunc)).Methods(http.MethodPost, http.MethodPut)
+	phs.HandleFunc("/{sessionID}", handlers.NewParticipantsAtHandlers(useRepositoryServices)).Methods(http.MethodPost, http.MethodPut)
 
 	api.Use(middleware.CROSMiddleware)
 	api.Use(middleware.CSRFMiddleware)
