@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func NewEmailServicesMock() UseEmailServicesFunc {
+func NewEmailServicesMock() UseEmailServices {
 	email := &EmailServices{mail: &mailMock{}}
 	return func(to string) *EmailServices {
 		email.to = to

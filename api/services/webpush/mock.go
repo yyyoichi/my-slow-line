@@ -7,7 +7,7 @@ import (
 	gwebpush "github.com/SherClockHolmes/webpush-go"
 )
 
-func NewWebpushServicesMock() UserWebpushServicesFunc {
+func NewWebpushServicesMock() UserWebpushServices {
 	ws := &WebpushServices{notification: &notificationMock{}}
 	return func(endpoint, auth, p256dh string) *WebpushServices {
 		ws.subscription = &gwebpush.Subscription{

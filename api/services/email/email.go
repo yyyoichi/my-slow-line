@@ -2,13 +2,13 @@ package email
 
 import "fmt"
 
-type UseEmailServicesFunc func(to string) *EmailServices
+type UseEmailServices func(to string) *EmailServices
 type EmailServices struct {
 	mail mailInterface
 	to   string
 }
 
-func NewEmailServices() UseEmailServicesFunc {
+func NewEmailServices() UseEmailServices {
 	email := &EmailServices{mail: &mail{}}
 	return func(to string) *EmailServices {
 		email.to = to

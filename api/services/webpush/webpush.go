@@ -2,13 +2,13 @@ package webpush
 
 import gwebpush "github.com/SherClockHolmes/webpush-go"
 
-type UserWebpushServicesFunc func(endpoint, auth, p256dh string) *WebpushServices
+type UserWebpushServices func(endpoint, auth, p256dh string) *WebpushServices
 type WebpushServices struct {
 	notification notificationInterface
 	subscription *gwebpush.Subscription
 }
 
-func NewWebpushServices() UserWebpushServicesFunc {
+func NewWebpushServices() UserWebpushServices {
 	ws := &WebpushServices{notification: &notification{}}
 	return func(endpoint, auth, p256dh string) *WebpushServices {
 		ws.subscription = &gwebpush.Subscription{
