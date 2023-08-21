@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"himakiwa/services/password"
 	"time"
 )
 
@@ -33,16 +34,19 @@ func CreateTestingUser(tx *sql.Tx, urs *UserRepositories) (*TestingUser, error) 
 	TestUserCount += 1
 	name := fmt.Sprintf("Test user %d", TestUserCount)
 	email := fmt.Sprintf("test%d@example.com", TestUserCount)
-
+	pass, err := password.HashPassword("pa55word")
+	if err != nil {
+		return nil, err
+	}
 	// create
-	userID, err := urs.UserRepository.Create(tx, name, email, "pa55word")
+	userID, err := urs.UserRepository.Create(tx, name, email, pass)
 	if err != nil {
 		return nil, err
 	}
 	expUser := &TQueryUser{
 		userID,
 		name,
-		"pa55word",
+		pass,
 		email,
 		sql.NullTime{},
 		time.Now(),

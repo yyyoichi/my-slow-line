@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"himakiwa/services/database"
+	"himakiwa/services/password"
 	"time"
 
 	guuid "github.com/google/uuid"
@@ -42,7 +43,7 @@ func (us *UserServices) Signin(email, pass, name string) (int, error) {
 		return 0, ErrInValidParams
 	}
 	// hashed password
-	hashedPass, err := hashPassword(pass)
+	hashedPass, err := password.HashPassword(pass)
 	if err != nil {
 		return 0, err
 	}
@@ -85,7 +86,7 @@ func (us *UserServices) Login(email, pass string) (int, error) {
 			return err
 		}
 		// check password
-		if result, err := comparePasswordAndHash(pass, user.HashedPass); err != nil {
+		if result, err := password.ComparePasswordAndHash(pass, user.HashedPass); err != nil {
 			return err
 		} else if !result {
 			return ErrInvalidPassword
