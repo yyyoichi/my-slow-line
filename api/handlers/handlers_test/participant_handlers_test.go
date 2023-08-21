@@ -3,7 +3,7 @@ package handlers_test
 import (
 	"himakiwa/handlers"
 	"himakiwa/handlers/utils"
-	"himakiwa/services/sessions"
+	"himakiwa/services"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,8 +13,7 @@ import (
 )
 
 func TestPostParticipantsAt(t *testing.T) {
-	UseSessionServicesFunc := sessions.NewSessionServicesMock()
-	participantsAtHandlers := handlers.NewParticipantsAtHandlers(UseSessionServicesFunc)
+	participantsAtHandlers := handlers.NewParticipantsAtHandlers(services.NewRepositoryServicesMock())
 
 	test := []struct {
 		endPoint      string

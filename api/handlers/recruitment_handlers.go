@@ -5,8 +5,6 @@ import (
 	"errors"
 	"himakiwa/handlers/utils"
 	"himakiwa/services"
-	"himakiwa/services/database"
-	"himakiwa/services/users"
 	"net/http"
 	"strconv"
 	"time"
@@ -14,15 +12,17 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var (
+	ErrNotExistRecruit = errors.New("dose not exist recruit")
+)
+
 type PublicRecruitHandlers struct {
-	QueryByUUid func(uuid string) (*database.TRecruiteUser, error)
+	services.UseRepositoryServices
 }
 
-func NewPublicRecruitHandlers() PublicRecruitHandlers {
-	return PublicRecruitHandlers{QueryByUUid: func(uuid string) (*database.TRecruiteUser, error) {
-		users := services.NewRepositoryServices().GetUser()
-		return users.QueryByRecruitUuid(uuid)
-	}}
+func NewPublicRecruitHandlers(use services.UseRepositoryServices) func(w http.ResponseWriter, r *http.Request) {
+	prh := &PublicRecruitHandlers{use}
+	return prh.PublicRecruitmentHandler
 }
 
 func (prh *PublicRecruitHandlers) PublicRecruitmentHandler(w http.ResponseWriter, r *http.Request) {
@@ -33,10 +33,6 @@ func (prh *PublicRecruitHandlers) PublicRecruitmentHandler(w http.ResponseWriter
 		http.Error(w, ErrUnExpcetedMethod, http.StatusBadRequest)
 	}
 }
-
-var (
-	ErrNotExistRecruit = errors.New("dose not exist recruit")
-)
 
 type GetPublicRecruitmentResp struct {
 	Name    string `json:"name"`
@@ -53,7 +49,7 @@ func (prh *PublicRecruitHandlers) getRecruitmentHandler(w http.ResponseWriter, r
 	}
 
 	// get reqruit by uuid
-	user, err := prh.QueryByUUid(recruitmentUUID)
+	user, err := prh.UseRepositoryServices(0).UserServices.GetUserByRecruitUUID(recruitmentUUID)
 	if err != nil {
 		http.Error(w, ErrSystem, http.StatusInternalServerError)
 		return
@@ -63,7 +59,7 @@ func (prh *PublicRecruitHandlers) getRecruitmentHandler(w http.ResponseWriter, r
 	resp := GetPublicRecruitmentResp{
 		user.Name,
 		user.Message,
-		user.Uuid,
+		user.UUID,
 	}
 
 	// resp
@@ -75,14 +71,12 @@ func (prh *PublicRecruitHandlers) getRecruitmentHandler(w http.ResponseWriter, r
 }
 
 type RecruitHandlers struct {
-	GetFriendRecruitService func(userID int) users.FriendRecruitService
+	services.UseRepositoryServices
 }
 
-func NewRecruitHandlers() RecruitHandlers {
-	return RecruitHandlers{func(userID int) users.FriendRecruitService {
-		users := services.NewRepositoryServices().GetUser()
-		return users.GetFriendRecruitService(userID)
-	}}
+func NewRecruitHandlers(use services.UseRepositoryServices) func(w http.ResponseWriter, r *http.Request) {
+	rh := &RecruitHandlers{use}
+	return rh.RecruitmentHandler
 }
 
 func (rh *RecruitHandlers) RecruitmentHandler(w http.ResponseWriter, r *http.Request) {
@@ -119,10 +113,10 @@ func (rh *RecruitHandlers) GetRecruitmentsHandler(w http.ResponseWriter, r *http
 	}
 
 	// get service
-	recruit := rh.GetFriendRecruitService(userID)
+	userServices := rh.UseRepositoryServices(userID).UserServices
 
 	// get data
-	recruits, err := recruit.Query()
+	recruits, err := userServices.GetRecruitments()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -132,7 +126,7 @@ func (rh *RecruitHandlers) GetRecruitmentsHandler(w http.ResponseWriter, r *http
 	recruitsments := []GetRecruitmentResp{}
 	for _, r := range recruits {
 		recruitsments = append(recruitsments, GetRecruitmentResp{
-			Id: r.Id, UserId: r.UserId, Uuid: r.Uuid, Message: r.Message, CreateAt: r.CreateAt, UpdateAt: r.UpdateAt, Deleted: r.Deleted,
+			Id: r.ID, UserId: r.UserID, Uuid: r.UUID, Message: r.Message, CreateAt: r.CreateAt, UpdateAt: r.UpdateAt, Deleted: r.Deleted,
 		})
 	}
 
@@ -165,10 +159,10 @@ func (rh *RecruitHandlers) PostRecruitmentsHandler(w http.ResponseWriter, r *htt
 	}
 
 	// get service
-	recruit := rh.GetFriendRecruitService(userID)
+	userServices := rh.UseRepositoryServices(userID).UserServices
 
 	// create
-	if err = recruit.Create(b.Message); err != nil {
+	if err = userServices.CreateRecruitment(b.Message); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -199,10 +193,10 @@ func (rh *RecruitHandlers) PutRecruitmentsHandler(w http.ResponseWriter, r *http
 	}
 
 	// get service
-	recruit := rh.GetFriendRecruitService(userID)
+	userServices := rh.UseRepositoryServices(userID).UserServices
 
 	// update
-	if err = recruit.UpdateAt(b.Uuid, b.Message, b.Deleted); err != nil {
+	if err = userServices.UpdateRecruitment(b.Uuid, b.Message, b.Deleted); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

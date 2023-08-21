@@ -14,22 +14,30 @@ var (
 	ErrSystem           = "error in system"
 )
 
-func MeHandler(w http.ResponseWriter, r *http.Request) {
+type MeHandlers struct {
+	services.UseRepositoryServices
+}
+
+func NewMeHandlers(use services.UseRepositoryServices) *MeHandlers {
+	return &MeHandlers{use}
+}
+
+func (mh *MeHandlers) MeHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		getMeHandler(w, r)
+		mh.getMeHandler(w, r)
 	default:
 		http.Error(w, ErrUnExpcetedMethod, http.StatusBadRequest)
 	}
 }
 
-func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+func (*MeHandlers) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	utils.DeleteJWTCookie(w)
 	w.WriteHeader(http.StatusOK)
 }
 
 type GetMeResp struct {
-	Id             int       `json:"id"`
+	ID             int       `json:"id"`
 	Name           string    `json:"name"`
 	Email          string    `json:"email"`
 	LoginAt        time.Time `json:"loginAt"`
@@ -39,30 +47,30 @@ type GetMeResp struct {
 	Deleted        bool      `json:"deleted"`
 }
 
-func getMeHandler(w http.ResponseWriter, r *http.Request) {
+func (mh *MeHandlers) getMeHandler(w http.ResponseWriter, r *http.Request) {
 	// read context
-	userId, err := strconv.Atoi(utils.ReadUserContext(r))
+	userID, err := strconv.Atoi(utils.ReadUserContext(r))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	ur := services.NewRepositoryServices().GetUser()
-	tu, err := ur.Query(userId)
+	userServices := mh.UseRepositoryServices(userID).UserServices
+	user, err := userServices.GetUser(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	resp := GetMeResp{
-		tu.Id,
-		tu.Name,
-		tu.Email,
-		tu.LoginAt,
-		tu.CreateAt,
-		tu.UpdateAt,
-		tu.TwoVerificated,
-		tu.Deleted,
+		user.ID,
+		user.Name,
+		user.Email,
+		user.LoginAt.Time,
+		user.CreateAt,
+		user.UpdateAt,
+		user.TwoVerificated,
+		user.Deleted,
 	}
 
 	// set jwt-token

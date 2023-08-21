@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"himakiwa/handlers"
 	"himakiwa/handlers/utils"
-	"himakiwa/services/sessions"
+	"himakiwa/services"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,8 +14,8 @@ import (
 )
 
 func TestGetChats(t *testing.T) {
-	UseSessionServicesFunc := sessions.NewSessionServicesMock()
-	chatsHandlers := handlers.NewChatsHandlers(UseSessionServicesFunc)
+	rs := services.NewRepositoryServicesMock()
+	chatsHandlers := handlers.NewChatsHandlers(rs)
 
 	req, err := http.NewRequest("GET", "/chats", nil)
 	if err != nil {
@@ -57,8 +57,7 @@ func TestGetChats(t *testing.T) {
 }
 
 func TestGetChatAt(t *testing.T) {
-	UseSessionServicesFunc := sessions.NewSessionServicesMock()
-	chatsAtHandlers := handlers.NewChatsAtHandlers(UseSessionServicesFunc)
+	chatsAtHandlers := handlers.NewChatsAtHandlers(services.NewRepositoryServicesMock())
 
 	test := []struct {
 		endPoint  string
@@ -102,8 +101,8 @@ func TestGetChatAt(t *testing.T) {
 }
 
 func TestPostChatsAt(t *testing.T) {
-	UseSessionServicesFunc := sessions.NewSessionServicesMock()
-	chatsAtHandlers := handlers.NewChatsAtHandlers(UseSessionServicesFunc)
+	rs := services.NewRepositoryServicesMock()
+	chatsAtHandlers := handlers.NewChatsAtHandlers(rs)
 
 	test := []struct {
 		endPoint      string
@@ -131,7 +130,7 @@ func TestPostChatsAt(t *testing.T) {
 			t.Errorf("Expected status code %d, but got %d", tt.expStatusCode, rr.Code)
 		}
 	}
-	sessionServices := UseSessionServicesFunc(2)
+	sessionServices := rs(2).SessionServices
 	chats, err := sessionServices.GetChatsAtIn48Hours(3)
 	if err != nil {
 		t.Error(err)

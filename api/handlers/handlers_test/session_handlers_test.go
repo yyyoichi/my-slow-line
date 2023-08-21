@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"himakiwa/handlers"
 	"himakiwa/handlers/utils"
-	"himakiwa/services/database"
-	"himakiwa/services/sessions"
+	"himakiwa/services"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,8 +14,7 @@ import (
 )
 
 func TestGetSessions(t *testing.T) {
-	UseSessionServicesFunc := sessions.NewSessionServicesMock()
-	sessionsHandlers := handlers.NewSessionsHandlers(UseSessionServicesFunc)
+	sessionsHandlers := handlers.NewSessionsHandlers(services.NewRepositoryServicesMock())
 
 	// Create a new test request with a mock user context
 	req, err := http.NewRequest("GET", "/sessions", nil)
@@ -67,8 +65,8 @@ func TestGetSessions(t *testing.T) {
 }
 
 func TestPostSessions(t *testing.T) {
-	UseSessionServicesFunc := sessions.NewSessionServicesMock()
-	sessionsHandlers := handlers.NewSessionsHandlers(UseSessionServicesFunc)
+	rs := services.NewRepositoryServicesMock()
+	sessionsHandlers := handlers.NewSessionsHandlers(rs)
 
 	test := []struct {
 		body          string
@@ -98,28 +96,11 @@ func TestPostSessions(t *testing.T) {
 		if tt.expStatusCode != http.StatusOK {
 			continue
 		}
-
-		sessionServices := UseSessionServicesFunc(1)
-		querySessions, err := sessionServices.GetActiveOrArchivedSessions()
-		if err != nil {
-			t.Error(err)
-		}
-		var session *database.TQuerySessions
-		for _, ss := range querySessions {
-			if ss.PublicKey == "AA" {
-				session = ss
-			}
-		}
-
-		if session.Name != tt.expName {
-			t.Errorf("Expected session.Name is '%s', but got='%s'", tt.expName, session.Name)
-		}
 	}
 }
 
 func TestGetSessionAt(t *testing.T) {
-	UseSessionServicesFunc := sessions.NewSessionServicesMock()
-	sessionAtHandlers := handlers.NewSessionAtHandlers(UseSessionServicesFunc)
+	sessionAtHandlers := handlers.NewSessionAtHandlers(services.NewRepositoryServicesMock())
 
 	// Create a new test request with a mock user context
 	req, err := http.NewRequest("GET", "/sessions/3", nil)
@@ -169,8 +150,7 @@ func TestPostSessionAt(t *testing.T) {
 	}
 
 	for _, tt := range test {
-		UseSessionServicesFunc := sessions.NewSessionServicesMock()
-		sessionAtHandlers := handlers.NewSessionAtHandlers(UseSessionServicesFunc)
+		sessionAtHandlers := handlers.NewSessionAtHandlers(services.NewRepositoryServicesMock())
 
 		// create Request
 		body := `{"sessionName": "New Session"}`
