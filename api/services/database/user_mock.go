@@ -35,7 +35,7 @@ func CreateTestingUser(tx *sql.Tx, urs *UserRepositories) (*TestingUser, error) 
 	email := fmt.Sprintf("test%d@example.com", TestUserCount)
 
 	// create
-	userID, err := urs.UserRepository.Create(tx, name, email, "pa55word", "123456")
+	userID, err := urs.UserRepository.Create(tx, name, email, "pa55word")
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func CreateTestingUser(tx *sql.Tx, urs *UserRepositories) (*TestingUser, error) 
 		time.Now(),
 		time.Now(),
 		false,
-		"123456",
+		"",
 		sql.NullTime{},
 		false,
 	}
@@ -137,7 +137,7 @@ func (ur *UserRepositoryMock) QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQue
 	return result, nil
 }
 
-func (ur *UserRepositoryMock) Create(tx *sql.Tx, name, email, hashedPass, vcode string) (int, error) {
+func (ur *UserRepositoryMock) Create(tx *sql.Tx, name, email, hashedPass string) (int, error) {
 	// check double email
 	for _, user := range ur.mock.userByID {
 		if user.Email == email {
@@ -162,7 +162,7 @@ func (ur *UserRepositoryMock) Create(tx *sql.Tx, name, email, hashedPass, vcode 
 		time.Now(),
 		time.Now(),
 		false,
-		vcode,
+		"",
 		sql.NullTime{},
 		false,
 	}

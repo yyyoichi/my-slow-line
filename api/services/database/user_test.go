@@ -122,7 +122,7 @@ func testUser(t *testing.T, repos *UserRepositories) {
 	}
 
 	// create double email
-	_, err = ur.Create(tx, expUser1.Name, expUser1.Email, expUser1.HashedPass, expUser1.VCode)
+	_, err = ur.Create(tx, expUser1.Name, expUser1.Email, expUser1.HashedPass)
 	if err == nil {
 		t.Error("Expecte err but got='nil'")
 	}
@@ -400,9 +400,6 @@ func userIsNotNil(t *testing.T, u *TQueryUser) {
 	}
 	if u.HashedPass == "" {
 		t.Error("HashedPass got=''")
-	}
-	if u.VCode == "" {
-		t.Error("VCode got=''")
 	}
 
 	if u.UpdateAt.IsZero() {

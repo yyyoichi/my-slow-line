@@ -24,7 +24,7 @@ type UserRepositoryInterface interface {
 	QueryByID(tx *sql.Tx, userID int) (*TQueryUser, error)
 	QueryByEMail(tx *sql.Tx, email string) (*TQueryUser, error)
 	QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQueryRecruitUser, error)
-	Create(tx *sql.Tx, name, email, hashedPass, vcode string) (int, error)
+	Create(tx *sql.Tx, name, email, hashedPass string) (int, error)
 	UpdateLoginTime(tx *sql.Tx, userID int) error
 	SoftDeleteByID(tx *sql.Tx, userID int) error
 	ActivateByID(tx *sql.Tx, userID int) error
@@ -123,10 +123,10 @@ func (ur *UserRepository) QueryByRecruitUUID(tx *sql.Tx, uuid string) (*TQueryRe
 	return result, nil
 }
 
-func (ur *UserRepository) Create(tx *sql.Tx, name, email, hashedPass, vcode string) (int, error) {
+func (ur *UserRepository) Create(tx *sql.Tx, name, email, hashedPass string) (int, error) {
 	// exec insert
-	query := `INSERT INTO users (name, email, password, two_step_verification_code) VALUES(?, ?, ?, ?)`
-	result, err := tx.Exec(query, name, email, hashedPass, vcode)
+	query := `INSERT INTO users (name, email, password) VALUES(?, ?, ?)`
+	result, err := tx.Exec(query, name, email, hashedPass)
 	if err != nil {
 		return 0, err
 	}

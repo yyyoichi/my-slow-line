@@ -36,22 +36,21 @@ func NewUserServices() UseUserServicesFunc {
 //////////// user repository service ////////////////
 /////////////////////////////////////////////////////
 
-func (us *UserServices) Signin(email, pass, name string) error {
+func (us *UserServices) Signin(email, pass, name string) (int, error) {
 	// validation
 	if email == "" || pass == "" {
-		return ErrInValidParams
+		return 0, ErrInValidParams
 	}
 	// hashed password
 	hashedPass, err := hashPassword(pass)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	// create verification code
-	vcode := generateRandomSixNumber()
-
-	return database.WithTransaction(func(tx *sql.Tx) error {
-		_, err := us.repositories.UserRepository.Create(tx, name, email, hashedPass, vcode)
+	var userID int
+	err = database.WithTransaction(func(tx *sql.Tx) error {
+		var err error
+		userID, err = us.repositories.UserRepository.Create(tx, name, email, hashedPass)
 		if err == nil {
 			return nil
 		}
@@ -67,15 +66,21 @@ func (us *UserServices) Signin(email, pass, name string) error {
 		// already exist
 		return ErrInvalidEmail
 	})
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
 }
 
-func (us *UserServices) Login(email, pass string) error {
+func (us *UserServices) Login(email, pass string) (int, error) {
 	// validate
 	if email == "" || pass == "" {
-		return ErrInValidParams
+		return 0, ErrInValidParams
 	}
-	return database.WithTransaction(func(tx *sql.Tx) error {
-		user, err := us.repositories.UserRepository.QueryByEMail(tx, email)
+	var user *database.TQueryUser
+	err := database.WithTransaction(func(tx *sql.Tx) error {
+		var err error
+		user, err = us.repositories.UserRepository.QueryByEMail(tx, email)
 		if err != nil {
 			return err
 		}
@@ -89,6 +94,10 @@ func (us *UserServices) Login(email, pass string) error {
 		// send logn timestamp
 		return us.repositories.UserRepository.UpdateLoginTime(tx, user.ID)
 	})
+	if err != nil {
+		return 0, err
+	}
+	return user.ID, nil
 }
 
 func (us *UserServices) RefreshVCode(userID int) (string, error) {
