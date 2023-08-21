@@ -21,12 +21,13 @@ var (
 
 type UseUserServicesFunc func(loginID int) *UserServices
 type UserServices struct {
-	repositories *database.UserRepositories
-	loginUserID  int
+	useTransaction database.TUseTransaction
+	repositories   *database.UserRepositories
+	loginUserID    int
 }
 
 func NewUserServices() UseUserServicesFunc {
-	us := &UserServices{repositories: database.NewUserRepositories()}
+	us := &UserServices{useTransaction: database.UseTransaction, repositories: database.NewUserRepositories()}
 	return func(loginID int) *UserServices {
 		us.loginUserID = loginID
 		return us
@@ -49,7 +50,7 @@ func (us *UserServices) Signin(email, pass, name string) (int, error) {
 	}
 
 	var userID int
-	err = database.WithTransaction(func(tx *sql.Tx) error {
+	err = us.useTransaction(func(tx *sql.Tx) error {
 		var err error
 		userID, err = us.repositories.UserRepository.Create(tx, name, email, hashedPass)
 		if err == nil {
@@ -79,7 +80,7 @@ func (us *UserServices) Login(email, pass string) (int, error) {
 		return 0, ErrInValidParams
 	}
 	var user *database.TQueryUser
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := us.useTransaction(func(tx *sql.Tx) error {
 		var err error
 		user, err = us.repositories.UserRepository.QueryByEMail(tx, email)
 		if err != nil {
@@ -106,7 +107,7 @@ func (us *UserServices) RefreshVCode(userID int) (string, error) {
 		return "", ErrInValidParams
 	}
 	vcode := generateRandomSixNumber()
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := us.useTransaction(func(tx *sql.Tx) error {
 		return us.repositories.UserRepository.UpdateVCode(tx, userID, vcode)
 	})
 	if err != nil {
@@ -119,7 +120,7 @@ func (us *UserServices) Verificate(userID int, vcode string) error {
 	if userID == 0 || vcode == "" || len(vcode) != 6 {
 		return ErrInValidParams
 	}
-	return database.WithTransaction(func(tx *sql.Tx) error {
+	return us.useTransaction(func(tx *sql.Tx) error {
 		user, err := us.repositories.UserRepository.QueryByID(tx, userID)
 		if err != nil {
 			return err
@@ -136,7 +137,7 @@ func (us *UserServices) GetUser(userID int) (*database.TQueryUser, error) {
 		return nil, ErrInValidParams
 	}
 	var user *database.TQueryUser
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := us.useTransaction(func(tx *sql.Tx) error {
 		var err error
 		user, err = us.repositories.UserRepository.QueryByID(tx, userID)
 		return err
@@ -152,7 +153,7 @@ func (us *UserServices) GetUserByRecruitUUID(uuid string) (*database.TQueryRecru
 		return nil, ErrInValidParams
 	}
 	var user *database.TQueryRecruitUser
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := us.useTransaction(func(tx *sql.Tx) error {
 		var err error
 		user, err = us.repositories.UserRepository.QueryByRecruitUUID(tx, uuid)
 		return err
@@ -169,7 +170,7 @@ func (us *UserServices) GetUserByRecruitUUID(uuid string) (*database.TQueryRecru
 
 func (us *UserServices) GetRecruitments() ([]*database.TQueryRecruitment, error) {
 	var recruitments []*database.TQueryRecruitment
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := us.useTransaction(func(tx *sql.Tx) error {
 		var err error
 		recruitments, err = us.repositories.RecruitmentRepository.QueryByUserID(tx, us.loginUserID)
 		return err
@@ -178,7 +179,7 @@ func (us *UserServices) GetRecruitments() ([]*database.TQueryRecruitment, error)
 }
 
 func (us *UserServices) UpdateRecruitment(uuid, message string, deleted bool) error {
-	return database.WithTransaction(func(tx *sql.Tx) error {
+	return us.useTransaction(func(tx *sql.Tx) error {
 		// is owned by loginUser
 		if recruitment, err := us.repositories.RecruitmentRepository.QueryByUUID(tx, uuid); err != nil {
 			return ErrInvalidUuid
@@ -193,14 +194,14 @@ func (us *UserServices) UpdateRecruitment(uuid, message string, deleted bool) er
 
 func (us *UserServices) CreateRecruitment(message string) error {
 	uuid := guuid.NewString()
-	return database.WithTransaction(func(tx *sql.Tx) error {
+	return us.useTransaction(func(tx *sql.Tx) error {
 		_, err := us.repositories.RecruitmentRepository.Create(tx, us.loginUserID, uuid, message)
 		return err
 	})
 }
 
 func (us *UserServices) DeleteRecruitment(uuid string) error {
-	return database.WithTransaction(func(tx *sql.Tx) error {
+	return us.useTransaction(func(tx *sql.Tx) error {
 		return us.repositories.RecruitmentRepository.Delete(tx, uuid)
 	})
 }
@@ -211,7 +212,7 @@ func (us *UserServices) DeleteRecruitment(uuid string) error {
 
 func (us *UserServices) GetWebpushSubscriptions() ([]*database.TQueryWebpushSubscription, error) {
 	var subscriptions []*database.TQueryWebpushSubscription
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := us.useTransaction(func(tx *sql.Tx) error {
 		var err error
 		subscriptions, err = us.repositories.WebpushSubscriptionRepository.QueryByUserID(tx, us.loginUserID)
 		return err
@@ -221,7 +222,7 @@ func (us *UserServices) GetWebpushSubscriptions() ([]*database.TQueryWebpushSubs
 
 func (us *UserServices) AddWebpushSubscription(endpoint, p256dh, auth, userAgent string, expTime *time.Time) error {
 	// users can have a subscription
-	return database.WithTransaction(func(tx *sql.Tx) error {
+	return us.useTransaction(func(tx *sql.Tx) error {
 		err := us.repositories.WebpushSubscriptionRepository.DeleteAll(tx, us.loginUserID)
 		if err != nil {
 			return err

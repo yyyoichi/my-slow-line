@@ -10,16 +10,23 @@ import (
 ////////////////////////////////////
 
 func NewSessionServicesMock() UseSessionServicesFunc {
+
+	tx := &sql.Tx{}
 	userID1 := 1
 	userID2 := 2
-	tx := &sql.Tx{}
+
+	useTransaction := func(fn func(tx *sql.Tx) error) error {
+		return fn(tx)
+	}
+	mock := database.NewSessionRepositoriesMock()
+	loginUserID := userID1
+	ss := &SessionServices{useTransaction, mock, loginUserID}
+
+	// insert data
 
 	var sessionID int
-	// loginUser is userID1 //
-	loginUserID := userID1
-	ss := &SessionServices{database.NewSessionRepositoriesMock(), loginUserID}
-
 	// session1 invite userID2
+	sessionID = 1
 	ss.CreateSession("", "Session1", userID2)
 
 	// session2 reject userID2

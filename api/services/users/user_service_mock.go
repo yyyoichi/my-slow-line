@@ -6,14 +6,19 @@ import (
 )
 
 func NewUserServicesMock() UseUserServicesFunc {
-	urs := database.NewUserRepositoriesMock()
 	tx := &sql.Tx{}
-	// create user 1
-	database.CreateTestingUser(tx, urs)
-	// create user 2
-	database.CreateTestingUser(tx, urs)
 
-	us := &UserServices{repositories: urs}
+	useTransaction := func(fn func(tx *sql.Tx) error) error {
+		return fn(tx)
+	}
+	mock := database.NewUserRepositoriesMock()
+	us := &UserServices{useTransaction, mock, 0}
+
+	// create user 1
+	database.CreateTestingUser(tx, mock)
+	// create user 2
+	database.CreateTestingUser(tx, mock)
+
 	// loginUser is user 1 //
 	us.loginUserID = 1
 	us.CreateRecruitment("Hello")

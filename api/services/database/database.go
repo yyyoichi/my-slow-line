@@ -41,7 +41,9 @@ func GetDatabase() (*sql.DB, error) {
 	return db, err
 }
 
-func WithTransaction(fn func(tx *sql.Tx) error) error {
+type TUseTransaction func(func(tx *sql.Tx) error) error
+
+func UseTransaction(fn func(tx *sql.Tx) error) error {
 	tx, err := DB.Begin()
 	if err != nil {
 		return err

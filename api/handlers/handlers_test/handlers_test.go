@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"himakiwa/handlers/middleware"
-	"himakiwa/services/database"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -14,10 +13,6 @@ import (
 	"strings"
 	"testing"
 )
-
-func init() {
-	database.Connect()
-}
 
 type HttpMock struct {
 	client http.Client

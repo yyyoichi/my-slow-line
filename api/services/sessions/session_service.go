@@ -15,12 +15,13 @@ var (
 type UseSessionServicesFunc func(loginID int) *SessionServices
 
 type SessionServices struct {
-	repositories *database.SessionRepositories
-	loginUserID  int
+	useTransaction database.TUseTransaction
+	repositories   *database.SessionRepositories
+	loginUserID    int
 }
 
 func NewSessionServices() UseSessionServicesFunc {
-	ss := &SessionServices{repositories: database.NewSessionRepositories()}
+	ss := &SessionServices{useTransaction: database.UseTransaction, repositories: database.NewSessionRepositories()}
 	return func(loginID int) *SessionServices {
 		ss.loginUserID = loginID
 		return ss
@@ -34,7 +35,7 @@ func (ss *SessionServices) GetActiveOrArchivedSessions() ([]*database.TQuerySess
 		InSessionStatus: []database.TSessionStatus{database.TActiveSession, database.TArchivedSession},
 	}
 	var sessions []*database.TQuerySession
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := ss.useTransaction(func(tx *sql.Tx) error {
 		var err error
 		sessions, err = ss.repositories.SessionRepository.QueryByUserID(tx, ss.loginUserID, options)
 		return err
@@ -47,7 +48,7 @@ func (ss *SessionServices) GetActiveOrArchivedSessions() ([]*database.TQuerySess
 
 // create session and loginUser invite userID
 func (ss *SessionServices) CreateSession(publicKey, name string, userID int) error {
-	return database.WithTransaction(func(tx *sql.Tx) error {
+	return ss.useTransaction(func(tx *sql.Tx) error {
 		sessionID, err := ss.repositories.SessionRepository.Create(tx, ss.loginUserID, publicKey, name)
 		if err != nil {
 			return err
@@ -65,7 +66,7 @@ func (ss *SessionServices) CreateSession(publicKey, name string, userID int) err
 func (ss *SessionServices) GetSessionAt(sessionID int) (*database.TQuerySession, []*database.TSessionParticipant, error) {
 	var session *database.TQuerySession
 	var participants []*database.TSessionParticipant
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := ss.useTransaction(func(tx *sql.Tx) error {
 		// get session
 		var err error
 		session, err = ss.repositories.SessionRepository.QueryBySessionUserID(tx, sessionID, ss.loginUserID)
@@ -84,7 +85,7 @@ func (ss *SessionServices) GetSessionAt(sessionID int) (*database.TQuerySession,
 }
 
 func (ss *SessionServices) UpdateSessionNameAt(sessionID int, name string) error {
-	return database.WithTransaction(func(tx *sql.Tx) error {
+	return ss.useTransaction(func(tx *sql.Tx) error {
 		ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, ss.loginUserID, []database.TParticipantStatus{database.TJoinedParty})
 		if err != nil {
 			return err
@@ -102,7 +103,7 @@ func (ss *SessionServices) UpdateSessionNameAt(sessionID int, name string) error
 // get last chat in acvite sessions in whith the user joins
 func (ss *SessionServices) GetLastChatInActiveSessions() ([]*database.TQueryLastChat, error) {
 	var lastChats []*database.TQueryLastChat
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := ss.useTransaction(func(tx *sql.Tx) error {
 		var err error
 		lastChats, err = ss.repositories.SessionChatRepository.QueryLastChatInActiveSessions(tx, ss.loginUserID)
 		return err
@@ -121,7 +122,7 @@ func (ss *SessionServices) GetChatsAtIn48Hours(sessionID int) ([]*database.TQuer
 		StartDate: time.Now().Add(-48 * time.Hour),
 		EndDate:   time.Now(),
 	}
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := ss.useTransaction(func(tx *sql.Tx) error {
 		ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, ss.loginUserID, []database.TParticipantStatus{database.TJoinedParty})
 		if err != nil {
 			return err
@@ -141,7 +142,7 @@ func (ss *SessionServices) GetChatsAtIn48Hours(sessionID int) ([]*database.TQuer
 
 // send chat content
 func (ss *SessionServices) SendChatAt(sessionID int, content string) error {
-	return database.WithTransaction(func(tx *sql.Tx) error {
+	return ss.useTransaction(func(tx *sql.Tx) error {
 		ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, ss.loginUserID, []database.TParticipantStatus{database.TJoinedParty})
 		if err != nil {
 			return err
@@ -157,7 +158,7 @@ func (ss *SessionServices) SendChatAt(sessionID int, content string) error {
 // update participant status
 func (ss *SessionServices) UpdateParticipantStatusAt(sessionID, userID int, status database.TParticipantStatus) error {
 	if ss.loginUserID == userID {
-		return database.WithTransaction(func(tx *sql.Tx) error {
+		return ss.useTransaction(func(tx *sql.Tx) error {
 			err := ss.repositories.SessionParticipantRepository.UpdateStatusBySessionUserID(tx, sessionID, userID, status)
 			return err
 		})
@@ -165,7 +166,7 @@ func (ss *SessionServices) UpdateParticipantStatusAt(sessionID, userID int, stat
 	if status != database.TRejectedParty {
 		return ErrCannotUpdateStatus
 	}
-	return database.WithTransaction(func(tx *sql.Tx) error {
+	return ss.useTransaction(func(tx *sql.Tx) error {
 		ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, ss.loginUserID, []database.TParticipantStatus{database.TJoinedParty})
 		if err != nil {
 			return err
@@ -182,7 +183,7 @@ func (ss *SessionServices) UpdateParticipantStatusAt(sessionID, userID int, stat
 func (ss *SessionServices) IsJoined(sessionID, userID int) (bool, error) {
 	joined := []database.TParticipantStatus{database.TJoinedParty}
 	ok := false
-	err := database.WithTransaction(func(tx *sql.Tx) error {
+	err := ss.useTransaction(func(tx *sql.Tx) error {
 		var err error
 		ok, err = ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, userID, joined)
 		if err != nil {
