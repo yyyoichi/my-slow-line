@@ -5,11 +5,16 @@ go 1.19
 require (
 	github.com/SherClockHolmes/webpush-go v1.2.0
 	github.com/go-sql-driver/mysql v1.7.0
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/csrf v1.7.1
 	github.com/gorilla/mux v1.8.0
+	github.com/jmoiron/sqlx v1.3.5
 )
 
-require github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+require (
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/stretchr/testify v1.8.4 // indirect
+)
 
 require (
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -23,6 +28,6 @@ require (
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/gorilla/securecookie v1.1.1 // indirect
-	github.com/pkg/errors v0.9.1
+	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/crypto v0.7.0
 )

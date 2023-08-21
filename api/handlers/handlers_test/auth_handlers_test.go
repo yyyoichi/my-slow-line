@@ -5,93 +5,77 @@ import (
 	"himakiwa/handlers"
 	jwttoken "himakiwa/handlers/jwt"
 	"himakiwa/services"
-	"himakiwa/services/database"
+	"himakiwa/services/email"
 	"net/http"
 	"os"
 	"strconv"
 	"testing"
 )
 
-var SendVCodeMock = func(tu *database.TUser) error {
-	fmt.Printf("send %s to %s\n", tu.VCode, tu.Email)
-	return nil
-}
-
-func init() {
-	database.Connect()
-}
-
 func TestLoginHandler(t *testing.T) {
-	// create user
-	email := "handlertest@example.com"
-	pass := "pa55word"
-	us := services.NewRepositoryServices().GetUser()
-	tu, err := us.Signin(email, pass, "")
-	if err != nil {
-		t.Error(err)
-	}
-	defer us.HardDelete(tu.Id)
+	var emailAddr = "test1@example.com"
+	var password = "pa55word"
+	var userID = 1
+	var useEmailServices = email.NewEmailServicesMock()
+	var useRepositoryServices = services.NewRepositoryServicesMock()
+	var ah = handlers.NewAutenticateHandlers(useEmailServices, useRepositoryServices)
 
 	// create server
-	ah := &handlers.AutenticatehHandlers{SendVCode: SendVCodeMock}
 	server := NewHttpMock(ah.LoginHandler)
 	defer server.Close()
 
 	// request
-	body := fmt.Sprintf(`{"email":"%s", "password":"%s"}`, email, pass)
+	body := fmt.Sprintf(`{"email":"%s", "password":"%s"}`, emailAddr, password)
 	resp := server.Post(t, body)
 
 	defer resp.BodyClose()
 
-	verificateJwt(t, resp, email)
+	verificateJwt(t, resp, userID, emailAddr)
 }
 func TestSigninHandler(t *testing.T) {
-	// basic detail
-	email := "handlertest@example.com"
-	pass := "pa55word"
-
-	ur := &database.UserRepository{}
-	defer ur.HardDeleteByEmail(email)
-
+	var password = "pa55word"
+	var useEmailServices = email.NewEmailServicesMock()
+	var useRepositoryServices = services.NewRepositoryServicesMock()
+	var ah = handlers.NewAutenticateHandlers(useEmailServices, useRepositoryServices)
 	// create server
-	ah := &handlers.AutenticatehHandlers{SendVCode: SendVCodeMock}
 	server := NewHttpMock(ah.SigninHandler)
 	defer server.Close()
 
 	// request
-	body := fmt.Sprintf(`{"email":"%s", "password":"%s", "name":""}`, email, pass)
+	body := fmt.Sprintf(`{"email":"%s", "password":"%s", "name":""}`, "test999@example.com", password)
 	resp := server.Post(t, body)
 
 	defer resp.BodyClose()
 
-	verificateJwt(t, resp, email)
+	verificateJwt(t, resp, 3, "test999@example.com")
 }
 
 func TestVerificateHandler(t *testing.T) {
-	// create user
-	email := "handlertest@example.com"
-	pass := "pa55word"
-	us := services.NewRepositoryServices().GetUser()
-	tu, err := us.Signin(email, pass, "")
-	if err != nil {
-		t.Error(err)
-	}
-	defer us.HardDelete(tu.Id)
+	var emailAddr = "test1@example.com"
+	var password = "pa55word"
+	var useEmailServices = email.NewEmailServicesMock()
+	var useRepositoryServices = services.NewRepositoryServicesMock()
+	var ah = handlers.NewAutenticateHandlers(useEmailServices, useRepositoryServices)
 
+	// login At
+	useRepositoryServices(1).UserServices.Login(emailAddr, password)
 	// create jwt
 	jt := jwttoken.New10minJwt(os.Getenv("JWT_SECRET"))
-	token, err := jt.Generate(strconv.Itoa(tu.Id))
+	token, err := jt.Generate("1")
 	if err != nil {
 		t.Error(err)
 	}
 
 	// create server
-	ah := &handlers.AutenticatehHandlers{SendVCode: SendVCodeMock}
+	vcode, err := useRepositoryServices(1).UserServices.RefreshVCode(1)
+	if err != nil {
+		t.Error(err)
+	}
 	server := NewHttpMock(ah.VerificateHandler)
 	defer server.Close()
 
 	// request
-	body := fmt.Sprintf(`{"code":"%s", "jwt":"%s"}`, tu.VCode, token)
+	body := fmt.Sprintf(`{"code":"%s", "jwt":"%s"}`, vcode, token)
 	resp := server.Post(t, body)
 
 	if resp.StatusCode != http.StatusOK {
@@ -99,7 +83,7 @@ func TestVerificateHandler(t *testing.T) {
 	}
 }
 
-func verificateJwt(t *testing.T, resp Resp, expEmail string) {
+func verificateJwt(t *testing.T, resp Resp, expID int, expEmail string) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected status-code is 200 but got='%d'", resp.StatusCode)
 	}
@@ -122,22 +106,9 @@ func verificateJwt(t *testing.T, resp Resp, expEmail string) {
 		t.Error(err)
 	}
 
-	userId, err := strconv.Atoi(claim.ID)
-	if err != nil {
+	if actUserID, err := strconv.Atoi(claim.ID); err != nil {
 		t.Error(err)
-	}
-
-	userServices := services.NewRepositoryServices().GetUser()
-	tu, err := userServices.Query(userId)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if tu.Email != expEmail {
-		t.Errorf("expected email is %s but got='%s'", expEmail, tu.Email)
-	}
-
-	if err = userServices.HardDelete(userId); err != nil {
-		t.Error(err)
+	} else if actUserID != expID {
+		t.Errorf("Expected userID is '%d', but got='%d'", expID, actUserID)
 	}
 }

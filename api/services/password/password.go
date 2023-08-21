@@ -1,4 +1,4 @@
-package users
+package password
 
 import (
 	"crypto/rand"
@@ -34,7 +34,7 @@ func generateRandomBytes(length uint32) ([]byte, error) {
 }
 
 // Function for stretching passwords with salt
-func hashPassword(password string) (string, error) {
+func HashPassword(password string) (string, error) {
 	p := &hashParams{
 		memory:      64 * 1024,
 		iterations:  3,
@@ -60,7 +60,7 @@ func hashPassword(password string) (string, error) {
 }
 
 // Function to compare and verify plaintext passwords and encoded hash values
-func comparePasswordAndHash(password, encodedHash string) (match bool, err error) {
+func ComparePasswordAndHash(password, encodedHash string) (match bool, err error) {
 	// Extract the parameters, salt and derived key from the encoded password
 	// hash.
 	p, salt, hash, err := decodeHash(encodedHash)

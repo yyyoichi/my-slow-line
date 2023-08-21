@@ -5,7 +5,6 @@ import (
 	jwttoken "himakiwa/handlers/jwt"
 	"himakiwa/handlers/utils"
 	"himakiwa/services"
-	"himakiwa/services/database"
 	"himakiwa/services/email"
 	"net/http"
 	"os"
@@ -17,15 +16,13 @@ var (
 	ErrIncorrectAuth = "incorrect auth request"
 )
 
-func NewAutenticateHandlers() AutenticatehHandlers {
-	var sendVCode = func(tu *database.TUser) error {
-		return email.NewEmailServices().SendVCode(tu.Email, tu.VCode)
-	}
-	return AutenticatehHandlers{SendVCode: sendVCode}
+func NewAutenticateHandlers(useEmailservices email.UseEmailServices, useRepositoryServices services.UseRepositoryServices) *AutenticatehHandlers {
+	return &AutenticatehHandlers{useEmailservices, useRepositoryServices}
 }
 
 type AutenticatehHandlers struct {
-	SendVCode func(*database.TUser) error
+	email.UseEmailServices
+	services.UseRepositoryServices
 }
 
 type BasicResp struct {
@@ -45,23 +42,29 @@ func (ah *AutenticatehHandlers) LoginHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	userServices := services.NewRepositoryServices().GetUser()
+	userServices := ah.UseRepositoryServices(0).UserServices
 
 	// log in
-	tu, err := userServices.Login(b.Email, b.Password)
+	userID, err := userServices.Login(b.Email, b.Password)
 	if err != nil {
 		http.Error(w, ErrInvalidAuth, http.StatusBadRequest)
 		return
 	}
 
-	// send vcode
-	if err = ah.SendVCode(tu); err != nil {
+	// create vcode
+	vcode, err := userServices.RefreshVCode(userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// send email
+	if err = ah.UseEmailServices(b.Email).SendVCode(vcode); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// set jwt
-	ah.return10JWT(w, tu)
+	ah.return10JWT(w, userID)
 }
 
 type SigninBody struct {
@@ -78,23 +81,29 @@ func (ah *AutenticatehHandlers) SigninHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	userServices := services.NewRepositoryServices().GetUser()
+	userServices := ah.UseRepositoryServices(0).UserServices
 
 	// sign in
-	tu, err := userServices.Signin(b.Email, b.Password, b.Name)
+	userID, err := userServices.Signin(b.Email, b.Password, b.Name)
 	if err != nil {
 		http.Error(w, ErrInvalidAuth, http.StatusBadRequest)
 		return
 	}
 
-	// send vcode
-	if err = ah.SendVCode(tu); err != nil {
+	// create vcode
+	vcode, err := userServices.RefreshVCode(userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// send email
+	if err = ah.UseEmailServices(b.Email).SendVCode(vcode); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// set jwt
-	ah.return10JWT(w, tu)
+	ah.return10JWT(w, userID)
 }
 
 type VerificateBody struct {
@@ -102,7 +111,7 @@ type VerificateBody struct {
 	Jwt  string `validate:"required"`
 }
 
-func (*AutenticatehHandlers) VerificateHandler(w http.ResponseWriter, r *http.Request) {
+func (ah *AutenticatehHandlers) VerificateHandler(w http.ResponseWriter, r *http.Request) {
 	// parse body
 	b := &VerificateBody{}
 	if err := utils.DecodeBody(r, b); err != nil {
@@ -127,13 +136,13 @@ func (*AutenticatehHandlers) VerificateHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	//verificate
-	userServices := services.NewRepositoryServices().GetUser()
+	userServices := ah.UseRepositoryServices(0).UserServices
 
-	_, err = userServices.Verificate(userId, b.Code)
-	if err != nil {
+	if err := userServices.Verificate(userId, b.Code); err != nil {
 		http.Error(w, ErrInvalidAuth, http.StatusBadRequest)
 		return
 	}
+
 	// set jwt-token
 	token, err := jt.Generate(claim.ID)
 	if err != nil {
@@ -144,11 +153,11 @@ func (*AutenticatehHandlers) VerificateHandler(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusOK)
 }
 
-func (*AutenticatehHandlers) return10JWT(w http.ResponseWriter, tu *database.TUser) {
+func (*AutenticatehHandlers) return10JWT(w http.ResponseWriter, userID int) {
 	// create jwt-token
 	secret := os.Getenv("JWT_SECRET")
 	jt := jwttoken.New10minJwt(secret)
-	token, err := jt.Generate(strconv.Itoa(tu.Id))
+	token, err := jt.Generate(strconv.Itoa(userID))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -1,39 +1,23 @@
 package email
 
-import (
-	"fmt"
-	"net/smtp"
-	"os"
-)
+import "fmt"
 
-type build struct {
-	To      string
-	Subject string
-	Message string
+type UseEmailServices func(to string) *EmailServices
+type EmailServices struct {
+	mail mailInterface
+	to   string
 }
 
-func (b *build) send() error {
-	from := os.Getenv("EMAIL_ADDRESS")
-	password := os.Getenv("APP_PASSWORD")
-	smtphost := os.Getenv("SMTP_HOST")
-	smtpport := os.Getenv("SMTP_PORT")
+func NewEmailServices() UseEmailServices {
+	email := &EmailServices{mail: &mail{}}
+	return func(to string) *EmailServices {
+		email.to = to
+		return email
+	}
+}
 
-	smtporigin := fmt.Sprintf("%s:%s", smtphost, smtpport)
-
-	auth := smtp.PlainAuth(
-		"",
-		from,
-		password,
-		smtphost,
-	)
-
-	body := fmt.Sprintf("TO: %s\r\nSubject: %s\r\n\n\n%s", b.To, b.Subject, b.Message)
-
-	return smtp.SendMail(
-		smtporigin,
-		auth,
-		from,
-		[]string{b.To},
-		[]byte(body),
-	)
+func (es *EmailServices) SendVCode(vcode string) error {
+	subject := "two-step verification"
+	message := fmt.Sprintf("Please entry '%s' in app.\nIf you do not recognize this e-mail address, please discard it.\n\nThank you.\n\n\nCtrl +", vcode)
+	return es.mail.sendMail(es.to, subject, message)
 }

@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"himakiwa/handlers"
 	"himakiwa/handlers/middleware"
+	"himakiwa/services"
 	"himakiwa/services/database"
+	"himakiwa/services/email"
+	"himakiwa/services/webpush"
 	"io"
 	"log"
 	"mime"
@@ -36,21 +39,44 @@ func handler() {
 	r := mux.NewRouter()
 	api := r.PathPrefix("/api").Subrouter()
 
+	// init services
+	useRepository := services.NewRepositoryServices()
+	emailServices := email.NewEmailServices()
+	webpushServices := webpush.NewWebpushServices()
+
 	api.HandleFunc("/safe", Safe).Methods(http.MethodGet)
 
-	ah := handlers.NewAutenticateHandlers()
+	ah := handlers.NewAutenticateHandlers(emailServices, useRepository)
 	api.HandleFunc("/signin", ah.SigninHandler).Methods(http.MethodPost)
 	api.HandleFunc("/login", ah.LoginHandler).Methods(http.MethodPost)
 	api.HandleFunc("/codein", ah.VerificateHandler).Methods(http.MethodPost)
+	api.HandleFunc("/recruitments/{recruitmentUUID}", NotFoundHandler).Methods(http.MethodGet)
 
 	me := api.PathPrefix("/me").Subrouter()
-	me.HandleFunc("/", handlers.MeHandler).Methods(http.MethodGet)
-	me.HandleFunc("/logout", handlers.LogoutHandler).Methods(http.MethodPost)
+	meHandlers := handlers.NewMeHandlers(useRepository)
+	me.HandleFunc("/", meHandlers.MeHandler).Methods(http.MethodGet)
+	me.HandleFunc("/logout", meHandlers.LogoutHandler).Methods(http.MethodPost)
+
+	publicRecruitHandlers := handlers.NewPublicRecruitHandlers(useRepository)
+	me.HandleFunc("/recruitments", publicRecruitHandlers).Methods(http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete)
 	me.Use(middleware.AuthMiddleware)
 
 	wp := me.PathPrefix("/webpush").Subrouter()
 	wp.HandleFunc("/vapid_public_key", handlers.VapidHandler).Methods(http.MethodGet)
-	wp.HandleFunc("/subscription", handlers.PushSubscriptionHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
+	webpushHandlers := handlers.NewWebPushSubscriptionHandlers(useRepository, webpushServices)
+	wp.HandleFunc("/subscription", webpushHandlers).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
+
+	ses := me.PathPrefix("/sessions").Subrouter()
+	useRepositoryServices := services.NewRepositoryServices()
+	ses.HandleFunc("", handlers.NewSessionsHandlers(useRepositoryServices)).Methods(http.MethodGet, http.MethodPost)
+	ses.HandleFunc("/{sessionID}", handlers.NewSessionAtHandlers(useRepositoryServices)).Methods(http.MethodGet, http.MethodPut)
+
+	chs := me.PathPrefix("/chats").Subrouter()
+	chs.HandleFunc("", handlers.NewChatsHandlers(useRepositoryServices)).Methods(http.MethodGet)
+	chs.HandleFunc("/{sessionID}", handlers.NewChatsAtHandlers(useRepositoryServices)).Methods(http.MethodGet, http.MethodPost)
+
+	phs := me.PathPrefix("/participants").Subrouter()
+	phs.HandleFunc("/{sessionID}", handlers.NewParticipantsAtHandlers(useRepositoryServices)).Methods(http.MethodPost, http.MethodPut)
 
 	api.Use(middleware.CROSMiddleware)
 	api.Use(middleware.CSRFMiddleware)

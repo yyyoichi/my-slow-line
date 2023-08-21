@@ -1,4 +1,4 @@
-package users
+package password
 
 import (
 	"testing"
@@ -11,11 +11,11 @@ func TestSafe(t *testing.T) {
 		"_gg",
 	}
 	for _, tt := range tests {
-		hashedPassword, err := hashPassword(tt)
+		hashedPassword, err := HashPassword(tt)
 		if err != nil {
 			t.Error(err)
 		}
-		result, err := comparePasswordAndHash(tt, hashedPassword)
+		result, err := ComparePasswordAndHash(tt, hashedPassword)
 		if err != nil {
 			t.Errorf("expected '%s' but got not equar", tt)
 		}
