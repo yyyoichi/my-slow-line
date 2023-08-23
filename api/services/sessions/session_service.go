@@ -163,26 +163,39 @@ func (ss *SessionServices) SendChatAt(sessionID int, content string) error {
 
 // update participant status
 func (ss *SessionServices) UpdateParticipantStatusAt(sessionID, userID int, status database.TParticipantStatus) error {
+	// update status me
 	if ss.loginUserID == userID {
 		return ss.useTransaction(func(tx *sql.Tx) error {
-			err := ss.repositories.SessionParticipantRepository.UpdateStatusBySessionUserID(tx, sessionID, userID, status)
-			return err
+			// updated user must have invited status
+			if ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, userID, []database.TParticipantStatus{database.TInvitedParty}); err != nil {
+				return err
+			} else if !ok {
+				return ErrCannotAccessSession
+			}
+			return ss.repositories.SessionParticipantRepository.UpdateStatusBySessionUserID(tx, sessionID, userID, status)
 		})
 	}
+	// status that login user can change of userID in session is only reject
+	// and updated user(userID) must have invited status.
 	if status != database.TRejectedParty {
 		return ErrCannotUpdateStatus
 	}
 	return ss.useTransaction(func(tx *sql.Tx) error {
-		ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, ss.loginUserID, []database.TParticipantStatus{database.TJoinedParty})
-		if err != nil {
+		// login user must have joined status
+		if ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, ss.loginUserID, []database.TParticipantStatus{database.TJoinedParty}); err != nil {
 			return err
-		}
-		if !ok {
+		} else if !ok {
 			return ErrCannotAccessSession
 		}
 
-		err = ss.repositories.SessionParticipantRepository.UpdateStatusBySessionUserID(tx, sessionID, userID, status)
-		return err
+		// updated user must have invited status
+		if ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, userID, []database.TParticipantStatus{database.TInvitedParty}); err != nil {
+			return err
+		} else if !ok {
+			return ErrCannotAccessSession
+		}
+
+		return ss.repositories.SessionParticipantRepository.UpdateStatusBySessionUserID(tx, sessionID, userID, status)
 	})
 }
 
