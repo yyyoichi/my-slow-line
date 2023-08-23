@@ -34,6 +34,11 @@ func NewUserServices() UseUserServicesFunc {
 	}
 }
 
+// deprecated
+func (us *UserServices) GetUserRepositories() *database.UserRepositories {
+	return us.repositories
+}
+
 /////////////////////////////////////////////////////
 //////////// user repository service ////////////////
 /////////////////////////////////////////////////////
