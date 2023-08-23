@@ -16,10 +16,8 @@ type tPlaneData struct {
 	Text string `json:"text"`
 }
 
-type TExchSessionKeyData struct {
-	SessionID         int    `json:"id"`
-	SeesionName       string `json:"sessionName"`
-	NumOfParticipants int    `json:"numOfParticipants"`
-	Invetee           string `json:"inviteUserName"`
-	Key               string `json:"key"`
+type tExchSessionKeyData struct {
+	SessionID int    `json:"id"`
+	Key       string `json:"key"`
+	Text      string `json:"text"`
 }
