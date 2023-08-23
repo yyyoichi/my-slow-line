@@ -43,13 +43,25 @@ func (ss *SessionServices) GetActiveOrArchivedSessions() ([]*database.TQuerySess
 	if err != nil {
 		return nil, err
 	}
-	return sessions, nil
+
+	// to secure
+	secureSessions := []*database.TQuerySession{}
+	for _, session := range sessions {
+		if session, err := ss.toSecureSession(session); err != nil {
+			return nil, err
+		} else if session != nil {
+			secureSessions = append(secureSessions, session)
+		}
+	}
+	return secureSessions, nil
 }
 
-// create session and loginUser invite userID
-func (ss *SessionServices) CreateSession(publicKey, name string, userID int) error {
-	return ss.useTransaction(func(tx *sql.Tx) error {
-		sessionID, err := ss.repositories.SessionRepository.Create(tx, ss.loginUserID, publicKey, name)
+// create session and loginUser invite userID, return sessionID
+func (ss *SessionServices) CreateSession(publicKey, name string, userID int) (int, error) {
+	var sessionID int
+	err := ss.useTransaction(func(tx *sql.Tx) error {
+		var err error
+		sessionID, err = ss.repositories.SessionRepository.Create(tx, ss.loginUserID, publicKey, name)
 		if err != nil {
 			return err
 		}
@@ -60,6 +72,10 @@ func (ss *SessionServices) CreateSession(publicKey, name string, userID int) err
 		_, err = ss.repositories.SessionParticipantRepository.Create(tx, sessionID, userID, ss.loginUserID, database.TInvitedParty)
 		return err
 	})
+	if err != nil {
+		return 0, err
+	}
+	return sessionID, nil
 }
 
 // get session and participants
@@ -81,6 +97,14 @@ func (ss *SessionServices) GetSessionAt(sessionID int) (*database.TQuerySession,
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// to secure
+	if session, err = ss.toSecureSession(session); err != nil {
+		return nil, nil, err
+	}
+	if participants, err = ss.toSecureParticipants(session.Status, participants); err != nil {
+		return nil, nil, err
+	}
 	return session, participants, nil
 }
 
@@ -96,6 +120,47 @@ func (ss *SessionServices) UpdateSessionNameAt(sessionID int, name string) error
 		err = ss.repositories.SessionRepository.UpdateName(tx, sessionID, name)
 		return err
 	})
+}
+
+/*
+secure session is
+1. public key of session to that login user is not join should be hided
+2. if login user is rejected, cannot access
+*/
+func (ss *SessionServices) toSecureSession(session *database.TQuerySession) (*database.TQuerySession, error) {
+	if session.Status == database.TRejectedParty {
+		return nil, ErrCannotAccessSession
+	}
+	if session.Status == database.TInvitedParty {
+		session.PublicKey = ""
+		return session, nil
+	}
+	// join
+	return session, nil
+}
+
+/*
+secure sesseion participants is
+1. participants of session is hided from invited, rejected user
+2. if login user is rejected, cannot access
+*/
+func (ss *SessionServices) toSecureParticipants(loginUserStatus database.TParticipantStatus, participants []*database.TSessionParticipant) ([]*database.TSessionParticipant, error) {
+	if loginUserStatus == database.TRejectedParty {
+		return nil, ErrCannotAccessSession
+	}
+
+	if loginUserStatus == database.TJoinedParty {
+		return participants, nil
+	}
+
+	// invite
+	var joinedAndMeParticipants []*database.TSessionParticipant
+	for _, party := range participants {
+		if party.Status == database.TJoinedParty || party.UserID == ss.loginUserID {
+			joinedAndMeParticipants = append(joinedAndMeParticipants, party)
+		}
+	}
+	return joinedAndMeParticipants, nil
 }
 
 // chats
@@ -157,26 +222,39 @@ func (ss *SessionServices) SendChatAt(sessionID int, content string) error {
 
 // update participant status
 func (ss *SessionServices) UpdateParticipantStatusAt(sessionID, userID int, status database.TParticipantStatus) error {
+	// update status me
 	if ss.loginUserID == userID {
 		return ss.useTransaction(func(tx *sql.Tx) error {
-			err := ss.repositories.SessionParticipantRepository.UpdateStatusBySessionUserID(tx, sessionID, userID, status)
-			return err
+			// updated user must have invited status
+			if ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, userID, []database.TParticipantStatus{database.TInvitedParty}); err != nil {
+				return err
+			} else if !ok {
+				return ErrCannotAccessSession
+			}
+			return ss.repositories.SessionParticipantRepository.UpdateStatusBySessionUserID(tx, sessionID, userID, status)
 		})
 	}
+	// status that login user can change of userID in session is only reject
+	// and updated user(userID) must have invited status.
 	if status != database.TRejectedParty {
 		return ErrCannotUpdateStatus
 	}
 	return ss.useTransaction(func(tx *sql.Tx) error {
-		ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, ss.loginUserID, []database.TParticipantStatus{database.TJoinedParty})
-		if err != nil {
+		// login user must have joined status
+		if ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, ss.loginUserID, []database.TParticipantStatus{database.TJoinedParty}); err != nil {
 			return err
-		}
-		if !ok {
+		} else if !ok {
 			return ErrCannotAccessSession
 		}
 
-		err = ss.repositories.SessionParticipantRepository.UpdateStatusBySessionUserID(tx, sessionID, userID, status)
-		return err
+		// updated user must have invited status
+		if ok, err := ss.repositories.SessionRepository.HasStatusAt(tx, sessionID, userID, []database.TParticipantStatus{database.TInvitedParty}); err != nil {
+			return err
+		} else if !ok {
+			return ErrCannotAccessSession
+		}
+
+		return ss.repositories.SessionParticipantRepository.UpdateStatusBySessionUserID(tx, sessionID, userID, status)
 	})
 }
 

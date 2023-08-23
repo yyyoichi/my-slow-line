@@ -1,6 +1,10 @@
 package webpush
 
-import gwebpush "github.com/SherClockHolmes/webpush-go"
+import (
+	"fmt"
+
+	gwebpush "github.com/SherClockHolmes/webpush-go"
+)
 
 type UserWebpushServices func(endpoint, auth, p256dh string) *WebpushServices
 type WebpushServices struct {
@@ -32,6 +36,27 @@ func (ws *WebpushServices) SendPlaneMessage(message string) error {
 		Type: planeMessage,
 		Data: tPlaneData{
 			Text: message,
+		},
+	})
+}
+
+type TExchSessionKeyArgs struct {
+	SessionID         int
+	SessionName       string
+	NumOfParticipants int
+	OfferUserName     string
+	Key               string
+}
+
+func (ws *WebpushServices) SendExchSessionKeyMessage(data TExchSessionKeyArgs) error {
+	text := fmt.Sprintf("%s invited【%s(%d)】", data.OfferUserName, data.SessionName, data.NumOfParticipants)
+
+	return ws.sendNotification(tMessage{
+		Type: exchSessionKeyMessage,
+		Data: tExchSessionKeyData{
+			data.SessionID,
+			data.Key,
+			text,
 		},
 	})
 }

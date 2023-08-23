@@ -8,9 +8,16 @@ type tMessage struct {
 type tMessageType string
 
 const (
-	planeMessage tMessageType = "palne"
+	planeMessage          tMessageType = "palne"
+	exchSessionKeyMessage tMessageType = "exchSessionKey"
 )
 
 type tPlaneData struct {
 	Text string `json:"text"`
+}
+
+type tExchSessionKeyData struct {
+	SessionID int    `json:"id"`
+	Key       string `json:"key"`
+	Text      string `json:"text"`
 }

@@ -93,6 +93,9 @@ type PostSessionsBody struct {
 	SessionName string `validate:"required"`
 	PublicKey   string `validate:"required"`
 }
+type PostSessionsResp struct {
+	SessionID int `json:"sessionID"`
+}
 
 func (sh *SessionsHandlers) PostSessionsHandler(w http.ResponseWriter, r *http.Request) {
 	// parse body
@@ -121,12 +124,16 @@ func (sh *SessionsHandlers) PostSessionsHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = sessionServices.CreateSession(b.PublicKey, b.SessionName, user.ID)
+	sessionID, err := sessionServices.CreateSession(b.PublicKey, b.SessionName, user.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	if err := json.NewEncoder(w).Encode(PostSessionsResp{sessionID}); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -203,6 +210,10 @@ func (sh *SessionAtHandlers) GetSessionAtHandler(w http.ResponseWriter, r *http.
 	session, participants, err := sessionServices.GetSessionAt(sessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(participants) == 0 || session == nil {
+		http.Error(w, ErrCannotAccessSession.Error(), http.StatusBadRequest)
 		return
 	}
 

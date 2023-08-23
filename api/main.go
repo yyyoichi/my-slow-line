@@ -71,6 +71,8 @@ func handler() {
 	ses.HandleFunc("", handlers.NewSessionsHandlers(useRepositoryServices)).Methods(http.MethodGet, http.MethodPost)
 	ses.HandleFunc("/{sessionID}", handlers.NewSessionAtHandlers(useRepositoryServices)).Methods(http.MethodGet, http.MethodPut)
 
+	me.HandleFunc("/sessionkey", handlers.NewSessionKeyHandlers(useRepository, webpushServices)).Methods(http.MethodPost)
+
 	chs := me.PathPrefix("/chats").Subrouter()
 	chs.HandleFunc("", handlers.NewChatsHandlers(useRepositoryServices)).Methods(http.MethodGet)
 	chs.HandleFunc("/{sessionID}", handlers.NewChatsAtHandlers(useRepositoryServices)).Methods(http.MethodGet, http.MethodPost)
