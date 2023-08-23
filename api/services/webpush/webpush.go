@@ -35,3 +35,10 @@ func (ws *WebpushServices) SendPlaneMessage(message string) error {
 		},
 	})
 }
+
+func (ws *WebpushServices) SendExchSessionKeyMessage(data TExchSessionKeyData) error {
+	return ws.sendNotification(tMessage{
+		Type: exchSessionKeyMessage,
+		Data: data,
+	})
+}
