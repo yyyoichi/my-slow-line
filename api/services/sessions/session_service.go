@@ -46,10 +46,12 @@ func (ss *SessionServices) GetActiveOrArchivedSessions() ([]*database.TQuerySess
 	return sessions, nil
 }
 
-// create session and loginUser invite userID
-func (ss *SessionServices) CreateSession(publicKey, name string, userID int) error {
-	return ss.useTransaction(func(tx *sql.Tx) error {
-		sessionID, err := ss.repositories.SessionRepository.Create(tx, ss.loginUserID, publicKey, name)
+// create session and loginUser invite userID, return sessionID
+func (ss *SessionServices) CreateSession(publicKey, name string, userID int) (int, error) {
+	var sessionID int
+	err := ss.useTransaction(func(tx *sql.Tx) error {
+		var err error
+		sessionID, err = ss.repositories.SessionRepository.Create(tx, ss.loginUserID, publicKey, name)
 		if err != nil {
 			return err
 		}
@@ -60,6 +62,10 @@ func (ss *SessionServices) CreateSession(publicKey, name string, userID int) err
 		_, err = ss.repositories.SessionParticipantRepository.Create(tx, sessionID, userID, ss.loginUserID, database.TInvitedParty)
 		return err
 	})
+	if err != nil {
+		return 0, err
+	}
+	return sessionID, nil
 }
 
 // get session and participants
