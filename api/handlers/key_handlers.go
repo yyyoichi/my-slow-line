@@ -65,18 +65,18 @@ func (kh *SessionKeyHandlers) PostSessionKey(w http.ResponseWriter, r *http.Requ
 	}
 	if session == nil {
 		http.Error(w, ErrCannotAccessSession.Error(), http.StatusBadRequest)
+		return
 	}
-	offerIsJoin := false
 	inviteeIsInvite := false
 	for _, party := range participants {
-		if party.UserID == userID && party.Status == database.TJoinedParty {
-			offerIsJoin = true
-		}
 		if party.UserID == b.InviteeID && party.Status == database.TInvitedParty {
 			inviteeIsInvite = true
+			break
 		}
 	}
-	if !offerIsJoin || !inviteeIsInvite {
+
+	offerIsJoined := session.Status == database.TJoinedParty
+	if !offerIsJoined || !inviteeIsInvite {
 		fmt.Println(ErrCannotPermissionToInvite)
 		http.Error(w, ErrCannotPermissionToInvite.Error(), http.StatusBadRequest)
 		return
