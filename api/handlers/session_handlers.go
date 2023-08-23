@@ -212,6 +212,34 @@ func (sh *SessionAtHandlers) GetSessionAtHandler(w http.ResponseWriter, r *http.
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if len(participants) == 0 || session == nil {
+		http.Error(w, ErrCannotAccessSession.Error(), http.StatusBadRequest)
+		return
+	}
+	// joined
+	var me *database.TSessionParticipant
+	for _, party := range participants {
+		if party.UserID == userID {
+			me = party
+			break
+		}
+	}
+	if me == nil || me.Status == database.TRejectedParty {
+		http.Error(w, ErrCannotAccessSession.Error(), http.StatusBadRequest)
+		return
+	}
+	// joined or invited
+	if me.Status == database.TInvitedParty {
+		// session public key and another invitee shoud be hided
+		session.PublicKey = ""
+		joinedParticipants := []*database.TSessionParticipant{}
+		for _, party := range participants {
+			if party.Status == database.TJoinedParty {
+				joinedParticipants = append(joinedParticipants, party)
+			}
+		}
+		participants = joinedParticipants
+	}
 
 	// map participants
 	respParticipants := []TSeesionAtParticipantResp{}
