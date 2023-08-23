@@ -210,11 +210,11 @@ func (us *UserServices) DeleteRecruitment(uuid string) error {
 ////// webpush subscription repository service //////
 /////////////////////////////////////////////////////
 
-func (us *UserServices) GetWebpushSubscriptions() ([]*database.TQueryWebpushSubscription, error) {
+func (us *UserServices) GetWebpushSubscriptions(userID int) ([]*database.TQueryWebpushSubscription, error) {
 	var subscriptions []*database.TQueryWebpushSubscription
 	err := us.useTransaction(func(tx *sql.Tx) error {
 		var err error
-		subscriptions, err = us.repositories.WebpushSubscriptionRepository.QueryByUserID(tx, us.loginUserID)
+		subscriptions, err = us.repositories.WebpushSubscriptionRepository.QueryByUserID(tx, userID)
 		return err
 	})
 	return subscriptions, err
