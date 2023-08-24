@@ -2,6 +2,12 @@ import axios, { AxiosRequestConfig } from 'axios';
 
 export const ErrorUnExpectedResponse = 'Sorry, occurs unexpected errors. Please try agin.';
 
+export class APIERROR extends Error {
+  constructor(message: string, readonly statusCode: number) {
+    super(message);
+  }
+}
+
 /**fetch api in csrf-safe */
 export const tokenizeFetch = async <T>(config: AxiosRequestConfig) => {
   const instance = axios.create({
